@@ -447,18 +447,11 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </nav>
   <div class="sb-bot">
-    <div id="fb-sync-ind" class="sync-bar sync-idle" style="margin:10px 12px 0;display:flex;cursor:pointer" onclick="navigate('options')" title="Synchronisation Firebase">
-      <div class="sync-dot" id="fb-sync-dot" style="background:var(--text-sub)"></div>
-      <span class="fb-sync-msg" style="flex:1">Firebase non configuré</span>
-    </div>
+
     <div class="save-bar">
-      <div class="save-row" id="save-status-row" onclick="handleSaveClick()" title="Fichier de sauvegarde">
-        <div class="sdot doff dpulse" id="save-dot"></div>
-        <div class="save-info">
-          <div class="save-fn" id="save-fn">Aucun fichier</div>
-          <div class="save-fh" id="save-fh">Cliquez pour connecter</div>
-        </div>
-        <span id="save-ic" style="font-size:.85rem;opacity:.6">📂</span>
+      <div id="fb-sync-ind" class="sync-bar sync-idle" style="cursor:default;margin-bottom:0">
+        <div class="sync-dot" id="fb-sync-dot" style="background:var(--text-sub)"></div>
+        <span class="fb-sync-msg" style="flex:1;font-size:.72rem" id="fb-sync-msg">Firebase...</span>
       </div>
     </div>
     <div class="sb-user" onclick="navigate('options')">
@@ -497,7 +490,6 @@ let S={
 let CV='home',CF='all',clk=null,PF=null;
 let selDay=null,calYear=null,calMonth=null,noteSaveQ=null;
 let fHandle=null,lastSavedAt=null,saveQueue=null;
-let fbSyncTimer=null,fbLastSynced=null,fbSyncing=false;
 const OWNER_UID='G8LIZtjiY6Zjip0hOLvGIKpqX853';
 let fbIdToken=null,fbTokenExpiry=0,fbRefreshToken=null;
 try{fbRefreshToken=localStorage.getItem('fb_rt')||null}catch(e){}
@@ -547,7 +539,7 @@ function load(){
 function save(){
   try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){setSaveStatus('warn','Stockage plein','Utilisez un fichier')}
   if(fHandle)scheduleSaveToFile();
-  if(fbUrl())scheduleFbSave();
+  if(fbIdToken)scheduleFbSave();
 }
 
 // ══ FILE SYSTEM ACCESS ══
@@ -610,140 +602,143 @@ function setSaveStatus(state,fname,hint){
 }
 
 // ══ FIREBASE SYNC ══
-let firebaseApp=null,firebaseAuth=null,firebaseUser=null;
+let fbDB=null, fbListener=null, fbOwnWrite=false, fbSyncing=false, fbLastSynced=null, fbSyncTimer=null;
 
-// ── Firebase config (hardcoded)
-const FB_CONFIG={
-  apiKey:'AIzaSyBGe4T-GOaC6BuH6jlkpfLv_XXPuQuzKNU',
-  authDomain:'crmarine-2c3dd.firebaseapp.com',
-  databaseURL:'https://crmarine-2c3dd-default-rtdb.europe-west1.firebasedatabase.app'
-};
+function getFirebaseDB(){
+  try{
+    // Use existing app or create new one
+    let app;
+    if(firebase.apps.length){
+      app=firebase.apps[0];
+    } else {
+      app=firebase.initializeApp(FB_CONFIG);
+    }
+    return firebase.database(app);
+  }catch(e){console.error('Firebase DB error',e);return null;}
+}
 
+function fbBaseUrl(){return FB_CONFIG.databaseURL.replace(/\/+$/,'');}
+function fbUrl(){return fbBaseUrl()+'/crm.json'+(fbIdToken?'?auth='+fbIdToken:'');}
+
+// ── Init Firebase Auth only
 function initFirebaseApp(){
   try{
-    if(firebaseApp) firebaseApp.delete().catch(()=>{});
-    firebaseApp=firebase.initializeApp(FB_CONFIG,'crm');
-    firebaseAuth=firebase.auth(firebaseApp);
-    firebaseAuth.onAuthStateChanged(user=>{
-      firebaseUser=user;
-      if(user){
-        user.getIdToken().then(t=>{fbIdToken=t;fbTokenExpiry=Date.now()+3500000});
-        setSyncStatus('ok','Connecté : '+user.email);
-      } else {
-        fbIdToken=null;
-      }
-    });
+    let app;
+    if(firebase.apps.length){
+      app=firebase.apps[0];
+    } else {
+      app=firebase.initializeApp(FB_CONFIG);
+    }
+    firebaseApp=app;
+    firebaseAuth=firebase.auth(app);
   }catch(e){console.error('Firebase init error',e);}
 }
 
-function fbBaseUrl(){
-  return FB_CONFIG.databaseURL.replace(/\/+$/,'');
-}
-function fbUrl(){
-  return fbBaseUrl()+'/.json'+(fbIdToken?'?auth='+fbIdToken:'');
-}
-
-async function fbEnsureAuth(){
-  if(!firebaseUser)return false;
-  try{fbIdToken=await firebaseUser.getIdToken(false);fbTokenExpiry=Date.now()+3500000;return true;}
-  catch(e){return false;}
-}
-
-async function fbSignIn(force=false){
-  // Legacy email/pass fallback via REST (used if SDK not ready)
-  const apiKey=(S.settings.fbApiKey||'').trim();
-  const email=(S.settings.fbEmail||'').trim();
-  const pass=(S.settings.fbPass||'').trim();
-  if(!apiKey)return false;
-  if(firebaseAuth&&email&&pass){
-    try{
-      const r=await firebaseAuth.signInWithEmailAndPassword(email,pass);
-      firebaseUser=r.user;fbIdToken=await r.user.getIdToken();fbTokenExpiry=Date.now()+3500000;return true;
-    }catch(e){setSyncStatus('err','Identifiants incorrects');return false;}
-  }
-  return false;
-}
-
-async function doGoogleLogin(){
-  if(!firebaseAuth){
-    showLoginErr("Configurez Firebase dans les Parametres d'abord");return;
-  }
-  const btn=document.getElementById('login-google-btn');
-  if(btn){btn.disabled=true;btn.textContent='Connexion...';}
-  document.getElementById('login-err').style.display='none';
-  try{
-    const provider=new firebase.auth.GoogleAuthProvider();
-    const result=await firebaseAuth.signInWithPopup(provider);
-    // ── UID check — only owner allowed
-    if(result.user.uid!==OWNER_UID){
-      await firebaseAuth.signOut();
-      showLoginErr('Accès refusé — ce compte Google n\'est pas autorisé.');
-      if(btn){btn.disabled=false;btn.innerHTML='<svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>Continuer avec Google';}
-      return;
-    }
-    firebaseUser=result.user;
-    fbIdToken=await result.user.getIdToken();
-    fbTokenExpiry=Date.now()+3500000;
-    S.settings.fbEmail=result.user.email;
-    try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){}
-    const loaded=await fbLoad();
-    if(loaded){applyTheme();updNC();}
-    hideLogin();navigate('home');tryReconnectFile();setTimeout(checkAutoTasks,800);
-  }catch(e){
-    if(btn){btn.disabled=false;btn.innerHTML='<svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>Continuer avec Google';}
-    if(e.code!=='auth/popup-closed-by-user')showLoginErr('Erreur Google: '+e.message);
-  }
+// ── Save to Firebase via REST (reliable, no SDK state issues)
+function scheduleFbSave(){
+  if(fbSyncTimer)clearTimeout(fbSyncTimer);
+  fbSyncTimer=setTimeout(fbSave, 800);
 }
 
 async function fbSave(){
-  const url=fbUrl();if(!url)return;
-  if(fbSyncing)return;fbSyncing=true;
-  setSyncStatus('syncing','Synchronisation…');
+  if(!fbIdToken)return;
+  if(fbSyncing)return;
+  fbSyncing=true;
+  setSyncStatus('syncing','Sauvegarde...');
   try{
-    const r=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:S,ts:Date.now()})});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    fbLastSynced=new Date();setSyncStatus('ok','Synchronisé à '+fbLastSynced.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
-  }catch(e){setSyncStatus("err","Erreur synchro - URL Firebase incorrecte");}
+    fbOwnWrite=true;
+    const payload=JSON.stringify({data:S, ts:Date.now()});
+    const r=await fetch(fbUrl(),{method:'PUT',headers:{'Content-Type':'application/json'},body:payload});
+    if(!r.ok){
+      const err=await r.text();
+      throw new Error('HTTP '+r.status+' — '+err);
+    }
+    fbLastSynced=new Date();
+    setSyncStatus('ok','Synchronisé à '+fbLastSynced.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){
+    console.error('fbSave error',e);
+    setSyncStatus('err','Erreur sauvegarde Firebase');
+    toast('⚠ Erreur synchro Firebase');
+  }
   fbSyncing=false;
+  setTimeout(()=>{fbOwnWrite=false;},1500);
 }
 
+// ── Load from Firebase via REST
 async function fbLoad(){
-  const url=fbUrl();if(!url)return false;
-  setSyncStatus('syncing','Chargement…');
+  if(!fbIdToken)return false;
+  setSyncStatus('syncing','Chargement...');
   try{
-    const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status);
+    const r=await fetch(fbUrl());
+    if(!r.ok)throw new Error('HTTP '+r.status);
     const d=await r.json();
     if(!d||!d.data)return false;
-    const remote=d.data;
-    if(!remote.offers||!remote.todos||!remote.clients)return false;
-    S=remote;
-    if(!S.journal)S.journal={};if(!S.groups)S.groups=[];if(!S.products)S.products=[];
-    if(!S.settings.autoTasks)S.settings.autoTasks={forte:{on:true,every:15,unit:'days'},moyenne:{on:true,every:45,unit:'days'},faible:{on:false,every:90,unit:'days'}};
-    try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){}
-    ovd();fbLastSynced=new Date();
+    applyRemoteData(d.data);
     setSyncStatus('ok','Chargé depuis Firebase');
     return true;
-  }catch(e){setSyncStatus("err","Impossible de joindre Firebase");return false;}
+  }catch(e){
+    console.error('fbLoad error',e);
+    setSyncStatus('err','Impossible de charger depuis Firebase');
+    return false;
+  }
 }
 
-function scheduleFbSave(){
-  if(!fbUrl())return;
-  if(fbSyncTimer)clearTimeout(fbSyncTimer);
-  fbSyncTimer=setTimeout(fbSave,1200);
+function applyRemoteData(remote){
+  if(!remote||!remote.offers||!remote.todos||!remote.clients)return;
+  S=remote;
+  if(!S.journal)S.journal={};
+  if(!S.groups)S.groups=[];
+  if(!S.products)S.products=[];
+  if(!S.settings)S.settings={};
+  if(!S.settings.autoTasks)S.settings.autoTasks={forte:{on:true,every:15,unit:'days'},moyenne:{on:true,every:45,unit:'days'},faible:{on:false,every:90,unit:'days'}};
+  try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){}
+  ovd();
+  fbLastSynced=new Date();
 }
 
-function setSyncStatus(state,msg){
-  // Update sidebar indicator
-  const ind=document.getElementById('fb-sync-ind');
-  const dot=document.getElementById('fb-sync-dot');
-  if(!ind||!dot)return;
-  ind.className='sync-bar';dot.className='sync-dot';
-  if(state==='ok'){ind.classList.add('sync-ok');dot.style.background='var(--success)'}
-  else if(state==='syncing'){ind.classList.add('sync-idle');dot.classList.add('sync-pulse');dot.style.background='var(--accent)'}
-  else if(state==='err'){ind.classList.add('sync-err');dot.style.background='var(--danger)'}
-  else{ind.classList.add('sync-idle');dot.style.background='var(--text-sub)'}
-  ind.querySelector('.fb-sync-msg').textContent=msg||'';
+// ── Realtime listener via Firebase SDK
+function startRealtimeListener(){
+  try{
+    fbDB=getFirebaseDB();
+    if(!fbDB){console.error('No Firebase DB');return;}
+    if(fbListener){fbDB.ref('crm').off('value',fbListener);fbListener=null;}
+    fbListener=fbDB.ref('crm').on('value',snap=>{
+      if(fbOwnWrite)return;
+      const d=snap.val();
+      if(!d||!d.data)return;
+      applyRemoteData(d.data);
+      applyTheme();updNC();
+      try{
+        const R={home:rHome,offers:()=>rOffers({filter:CF}),todos:()=>rTodos({filter:CF}),clients:rClients,journal:()=>rJournal(),options:rOptions};
+        if(R[CV])R[CV]();
+      }catch(e){}
+      setSyncStatus('ok','Mis à jour à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
+    },err=>{
+      console.error('Realtime listener error',err);
+      setSyncStatus('err','Erreur connexion temps réel');
+    });
+    console.log('Realtime listener started on /crm');
+  }catch(e){console.error('startRealtimeListener error',e);}
 }
+
+function stopRealtimeListener(){
+  try{if(fbDB&&fbListener){fbDB.ref('crm').off('value',fbListener);fbListener=null;}}catch(e){}
+}
+
+async function fbEnsureAuth(){
+  if(fbIdToken&&Date.now()<fbTokenExpiry-60000)return true;
+  if(!firebaseUser)return false;
+  try{fbIdToken=await firebaseUser.getIdToken(true);fbTokenExpiry=Date.now()+3500000;return true;}
+  catch(e){return false;}
+}
+
+// ── Periodic token refresh (every 50 min)
+setInterval(async()=>{
+  if(firebaseUser){
+    try{fbIdToken=await firebaseUser.getIdToken(true);fbTokenExpiry=Date.now()+3500000;}
+    catch(e){console.warn('Token refresh failed',e);}
+  }
+},50*60*1000);
 
 // ══ AUTO-TASKS ══
 function checkAutoTasks(){
@@ -1298,7 +1293,7 @@ function rOptions(){
         <div class="or-lbl" style="display:flex;align-items:center;gap:8px"><span class="sdot dok" style="display:inline-block;margin-right:4px"></span> Firebase connecté</div>
         <div class="or-sub">Base : crmarine-2c3dd · Synchro automatique active</div>
       </div>
-      <button class="btn btn-g btn-sm" onclick="fbLoad().then(ok=>{if(ok){applyTheme();updNC();navigate(CV);toast('Données rechargées ✓')}})">⬇ Recharger</button>
+      <button class="btn btn-g btn-sm" onclick="fbEnsureAuth().then(()=>fbLoad().then(ok=>{if(ok){applyTheme();updNC();navigate(CV);toast('Données rechargées ✓')}}))">⬇ Recharger</button>
     </div>
   </div>
   <div class="eyebrow" style="margin:18px 0 6px">Produits upsale</div>
@@ -1386,6 +1381,7 @@ function del(type,id){
 
 function doLogout(){
   if(!confirm('Se déconnecter ?'))return;
+  stopRealtimeListener();
   fbIdToken=null;fbTokenExpiry=0;firebaseUser=null;
   if(firebaseAuth)firebaseAuth.signOut().catch(()=>{});
   showLogin();
@@ -1467,33 +1463,30 @@ function showLoginErr(msg){
 }
 
 // ══ INIT ══
-load();
+load();           // load localStorage as fallback
 applyTheme();
 initFirebaseApp();
-const hasFb=true; // Firebase config is hardcoded
-if(hasFb&&firebaseAuth){
-  setSyncStatus('syncing','Connexion...');
-  showLogin();
-  // Firebase will auto-restore session if user was previously signed in
-  firebaseAuth.onAuthStateChanged(user=>{
-    if(user&&user.uid===OWNER_UID){
-      firebaseUser=user;
-      user.getIdToken().then(token=>{
-        fbIdToken=token;fbTokenExpiry=Date.now()+3500000;
-        fbLoad().then(loaded=>{
-          if(loaded){applyTheme();updNC();}
-          hideLogin();navigate('home');tryReconnectFile();setTimeout(checkAutoTasks,800);
-        });
-      });
-    } else {
-      if(user){firebaseAuth.signOut();}
-      showLogin();
-    }
-  });
-} else {
-  setSyncStatus('idle','Firebase non configure');
-  showLogin();
-}
+setSyncStatus('syncing','Connexion...');
+showLogin();
+
+// Single auth state listener — handles login, silent reconnect, and logout
+firebaseAuth.onAuthStateChanged(async user=>{
+  if(user && user.uid===OWNER_UID){
+    firebaseUser=user;
+    try{ fbIdToken=await user.getIdToken(); fbTokenExpiry=Date.now()+3500000; }catch(e){}
+    // Start realtime listener — fires immediately with current data, then on every remote change
+    startRealtimeListener();
+    hideLogin();
+    navigate('home');
+    tryReconnectFile();
+    setTimeout(checkAutoTasks,800);
+  } else {
+    if(user){ firebaseAuth.signOut(); }
+    if(fbListener){ firebase.database(firebaseApp).ref('/').off('value',fbListener); fbListener=null; }
+    firebaseUser=null; fbIdToken=null;
+    showLogin();
+  }
+});
 </script>
 </body>
 </html>
