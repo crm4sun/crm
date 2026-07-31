@@ -400,7 +400,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
     <div class="login-title">Connexion</div>
     <div class="login-sub">Accédez à votre espace commercial</div>
     <div class="login-err" id="login-err"></div>
-    <button class="login-btn-google" id="login-google-btn" onclick="doGoogleLogin()">
+    <button class="login-btn-google" id="login-google-btn" onclick="fbGoogleSignIn()">
       <svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
       Continuer avec Google
     </button>
@@ -490,9 +490,7 @@ let S={
 let CV='home',CF='all',clk=null,PF=null;
 let selDay=null,calYear=null,calMonth=null,noteSaveQ=null;
 let fHandle=null,lastSavedAt=null,saveQueue=null;
-const OWNER_UID='G8LIZtjiY6Zjip0hOLvGIKpqX853';
-let fbIdToken=null,fbTokenExpiry=0,fbRefreshToken=null;
-try{fbRefreshToken=localStorage.getItem('fb_rt')||null}catch(e){}
+
 const FSA_SUPPORTED='showSaveFilePicker' in window;
 
 // ══ UTILS ══
@@ -537,13 +535,10 @@ function load(){
   ovd();
 }
 function save(){
-  try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){setSaveStatus('warn','Stockage plein','Utilisez un fichier')}
-  if(fHandle)scheduleSaveToFile();
-  if(fbIdToken)scheduleFbSave();
+  try{ localStorage.setItem('crm5',JSON.stringify(S)); }catch(e){}
+  if(fHandle) scheduleSaveToFile();
+  fbScheduleSave();
 }
-
-// ══ FILE SYSTEM ACCESS ══
-const IDB_NAME='crm_fsa2',IDB_STORE='handles',IDB_KEY='bh';
 function idbGet(k){return new Promise(r=>{const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE);req.onsuccess=e=>{const db=e.target.result;const tx=db.transaction(IDB_STORE,'readonly');const q=tx.objectStore(IDB_STORE).get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)};req.onerror=()=>r(null)})}
 function idbSet(k,v){return new Promise(r=>{const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE);req.onsuccess=e=>{const db=e.target.result;const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put(v,k);tx.oncomplete=()=>r(true);tx.onerror=()=>r(false)};req.onerror=()=>r(false)})}
 function idbDel(k){return new Promise(r=>{const req=indexedDB.open(IDB_NAME,1);req.onsuccess=e=>{const db=e.target.result;const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).delete(k);tx.oncomplete=()=>r()}})}
@@ -602,143 +597,139 @@ function setSaveStatus(state,fname,hint){
 }
 
 // ══ FIREBASE SYNC ══
-let fbDB=null, fbListener=null, fbOwnWrite=false, fbSyncing=false, fbLastSynced=null, fbSyncTimer=null;
+const FB_CONFIG={
+  apiKey:'AIzaSyBGe4T-GOaC6BuH6jlkpfLv_XXPuQuzKNU',
+  authDomain:'crmarine-2c3dd.firebaseapp.com',
+  databaseURL:'https://crmarine-2c3dd-default-rtdb.europe-west1.firebasedatabase.app'
+};
+const OWNER_UID='G8LIZtjiY6Zjip0hOLvGIKpqX853';
 
-function getFirebaseDB(){
+function fbInit(){
   try{
-    // Use existing app or create new one
-    let app;
-    if(firebase.apps.length){
-      app=firebase.apps[0];
-    } else {
-      app=firebase.initializeApp(FB_CONFIG);
-    }
-    return firebase.database(app);
-  }catch(e){console.error('Firebase DB error',e);return null;}
+    fbApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(FB_CONFIG);
+    fbAuth = firebase.auth(fbApp);
+    fbDB   = firebase.database(fbApp);
+    fbAuth.onAuthStateChanged(async user=>{
+      if(user && user.uid===OWNER_UID){
+        fbUser=user;
+        try{ fbToken=await user.getIdToken(); }catch(e){}
+        const loaded=await fbLoadData();
+        if(loaded){ applyTheme(); updNC(); }
+        fbStartListener();
+        hideLogin();
+        navigate('home');
+        tryReconnectFile();
+        setTimeout(checkAutoTasks,800);
+      } else {
+        if(user) fbAuth.signOut();
+        fbUser=null; fbToken=null;
+        fbStopListener();
+        showLogin();
+      }
+    });
+  }catch(e){ console.error('fbInit error',e); showLogin(); }
 }
 
-function fbBaseUrl(){return FB_CONFIG.databaseURL.replace(/\/+$/,'');}
-function fbUrl(){return fbBaseUrl()+'/crm.json'+(fbIdToken?'?auth='+fbIdToken:'');}
-
-// ── Init Firebase Auth only
-function initFirebaseApp(){
+async function fbGoogleSignIn(){
+  if(!fbAuth){ showLoginErr('Firebase non initialisé'); return; }
+  const btn=document.getElementById('login-google-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Connexion...'; }
+  document.getElementById('login-err').style.display='none';
   try{
-    let app;
-    if(firebase.apps.length){
-      app=firebase.apps[0];
-    } else {
-      app=firebase.initializeApp(FB_CONFIG);
-    }
-    firebaseApp=app;
-    firebaseAuth=firebase.auth(app);
-  }catch(e){console.error('Firebase init error',e);}
-}
-
-// ── Save to Firebase via REST (reliable, no SDK state issues)
-function scheduleFbSave(){
-  if(fbSyncTimer)clearTimeout(fbSyncTimer);
-  fbSyncTimer=setTimeout(fbSave, 800);
-}
-
-async function fbSave(){
-  if(!fbIdToken)return;
-  if(fbSyncing)return;
-  fbSyncing=true;
-  setSyncStatus('syncing','Sauvegarde...');
-  try{
-    fbOwnWrite=true;
-    const payload=JSON.stringify({data:S, ts:Date.now()});
-    const r=await fetch(fbUrl(),{method:'PUT',headers:{'Content-Type':'application/json'},body:payload});
-    if(!r.ok){
-      const err=await r.text();
-      throw new Error('HTTP '+r.status+' — '+err);
-    }
-    fbLastSynced=new Date();
-    setSyncStatus('ok','Synchronisé à '+fbLastSynced.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
+    const provider=new firebase.auth.GoogleAuthProvider();
+    await fbAuth.signInWithPopup(provider);
+    // onAuthStateChanged handles everything from here
   }catch(e){
-    console.error('fbSave error',e);
-    setSyncStatus('err','Erreur sauvegarde Firebase');
-    toast('⚠ Erreur synchro Firebase');
+    if(e.code!=='auth/popup-closed-by-user') showLoginErr('Erreur: '+e.message);
+    if(btn){ btn.disabled=false; btn.innerHTML=googleBtnHTML(); }
   }
-  fbSyncing=false;
-  setTimeout(()=>{fbOwnWrite=false;},1500);
 }
 
-// ── Load from Firebase via REST
-async function fbLoad(){
-  if(!fbIdToken)return false;
+function googleBtnHTML(){
+  return '<svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>Continuer avec Google';
+}
+
+async function fbLoadData(){
+  if(!fbDB||!fbUser) return false;
   setSyncStatus('syncing','Chargement...');
   try{
-    const r=await fetch(fbUrl());
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const d=await r.json();
-    if(!d||!d.data)return false;
-    applyRemoteData(d.data);
-    setSyncStatus('ok','Chargé depuis Firebase');
-    return true;
-  }catch(e){
-    console.error('fbLoad error',e);
-    setSyncStatus('err','Impossible de charger depuis Firebase');
+    const snap=await fbDB.ref('data').get();
+    const val=snap.val();
+    if(val && val.offers){ fbApplyData(val); return true; }
     return false;
-  }
+  }catch(e){ console.error('fbLoad error',e); setSyncStatus('err','Erreur chargement'); return false; }
 }
 
-function applyRemoteData(remote){
-  if(!remote||!remote.offers||!remote.todos||!remote.clients)return;
-  S=remote;
-  if(!S.journal)S.journal={};
-  if(!S.groups)S.groups=[];
-  if(!S.products)S.products=[];
-  if(!S.settings)S.settings={};
-  if(!S.settings.autoTasks)S.settings.autoTasks={forte:{on:true,every:15,unit:'days'},moyenne:{on:true,every:45,unit:'days'},faible:{on:false,every:90,unit:'days'}};
-  try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){}
-  ovd();
-  fbLastSynced=new Date();
-}
-
-// ── Realtime listener via Firebase SDK
-function startRealtimeListener(){
+async function fbSaveData(){
+  if(!fbDB||!fbUser) return;
+  fbWriting=true;
+  setSyncStatus('syncing','Sauvegarde...');
   try{
-    fbDB=getFirebaseDB();
-    if(!fbDB){console.error('No Firebase DB');return;}
-    if(fbListener){fbDB.ref('crm').off('value',fbListener);fbListener=null;}
-    fbListener=fbDB.ref('crm').on('value',snap=>{
-      if(fbOwnWrite)return;
-      const d=snap.val();
-      if(!d||!d.data)return;
-      applyRemoteData(d.data);
-      applyTheme();updNC();
-      try{
-        const R={home:rHome,offers:()=>rOffers({filter:CF}),todos:()=>rTodos({filter:CF}),clients:rClients,journal:()=>rJournal(),options:rOptions};
-        if(R[CV])R[CV]();
-      }catch(e){}
-      setSyncStatus('ok','Mis à jour à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
-    },err=>{
-      console.error('Realtime listener error',err);
-      setSyncStatus('err','Erreur connexion temps réel');
-    });
-    console.log('Realtime listener started on /crm');
-  }catch(e){console.error('startRealtimeListener error',e);}
+    fbToken=await fbUser.getIdToken();
+    await fbDB.ref('data').set(JSON.parse(JSON.stringify(S)));
+    const t=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('ok','Synchronise a '+t);
+  }catch(e){ console.error('fbSave error',e); setSyncStatus('err','Erreur sauvegarde'); toast('Erreur synchro Firebase'); }
+  setTimeout(()=>{ fbWriting=false; },1200);
 }
 
-function stopRealtimeListener(){
-  try{if(fbDB&&fbListener){fbDB.ref('crm').off('value',fbListener);fbListener=null;}}catch(e){}
+function fbStartListener(){
+  if(!fbDB) return;
+  fbStopListener();
+  fbListener=fbDB.ref('data').on('value', snap=>{
+    if(fbWriting) return;
+    const val=snap.val();
+    if(!val||!val.offers) return;
+    fbApplyData(val);
+    applyTheme(); updNC();
+    try{
+      const R={home:rHome,offers:()=>rOffers({filter:CF}),todos:()=>rTodos({filter:CF}),
+               clients:rClients,journal:()=>rJournal(),options:rOptions};
+      if(R[CV]) R[CV]();
+    }catch(e){}
+    const t=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('ok','Mis a jour a '+t);
+  }, err=>{ console.error('Listener error',err); setSyncStatus('err','Erreur temps reel'); });
 }
 
-async function fbEnsureAuth(){
-  if(fbIdToken&&Date.now()<fbTokenExpiry-60000)return true;
-  if(!firebaseUser)return false;
-  try{fbIdToken=await firebaseUser.getIdToken(true);fbTokenExpiry=Date.now()+3500000;return true;}
-  catch(e){return false;}
+function fbStopListener(){
+  if(fbDB && fbListener){ fbDB.ref('data').off('value',fbListener); fbListener=null; }
 }
 
-// ── Periodic token refresh (every 50 min)
-setInterval(async()=>{
-  if(firebaseUser){
-    try{fbIdToken=await firebaseUser.getIdToken(true);fbTokenExpiry=Date.now()+3500000;}
-    catch(e){console.warn('Token refresh failed',e);}
-  }
-},50*60*1000);
+function fbApplyData(val){
+  S=val;
+  if(!S.journal)  S.journal={};
+  if(!S.groups)   S.groups=[];
+  if(!S.products) S.products=[];
+  if(!S.settings) S.settings={};
+  if(!S.settings.autoTasks) S.settings.autoTasks={
+    forte:{on:true,every:15,unit:'days'},
+    moyenne:{on:true,every:45,unit:'days'},
+    faible:{on:false,every:90,unit:'days'}
+  };
+  try{ localStorage.setItem('crm5',JSON.stringify(S)); }catch(e){}
+  ovd();
+}
+
+function fbScheduleSave(){
+  if(!fbUser) return;
+  if(fbSaveTimer) clearTimeout(fbSaveTimer);
+  fbSaveTimer=setTimeout(fbSaveData, 800);
+}
+
+function setSyncStatus(state,msg){
+  const ind=document.getElementById('fb-sync-ind');
+  const dot=document.getElementById('fb-sync-dot');
+  if(!ind||!dot) return;
+  ind.className='sync-bar';
+  dot.className='sync-dot';
+  const msgEl=ind.querySelector('.fb-sync-msg');
+  if(state==='ok'){ind.classList.add('sync-ok');dot.classList.add('dok');}
+  else if(state==='syncing'){ind.classList.add('sync-idle');dot.style.background='var(--accent)';dot.classList.add('dpulse');}
+  else if(state==='err'){ind.classList.add('sync-err');dot.classList.add('dwarn');}
+  else{ind.classList.add('sync-idle');dot.classList.add('doff','dpulse');}
+  if(msgEl) msgEl.textContent=msg||'';
+}
 
 // ══ AUTO-TASKS ══
 function checkAutoTasks(){
@@ -1342,23 +1333,8 @@ function saveAT(){
   save();toast('Paramètres sauvegardés ✓');
 }
 function saveFbConfig(){
-  S.settings.fbUrl=(document.getElementById('fb-url-inp')?.value||'').trim();
-  S.settings.fbApiKey=(document.getElementById('fb-key-inp')?.value||'').trim();
-  S.settings.fbAuthDomain=(document.getElementById('fb-domain-inp')?.value||'').trim();
-  initFirebaseApp();
-  try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){}
-  if(S.settings.fbUrl&&S.settings.fbApiKey){
-    fbIdToken=null;fbRefreshToken=null;
-    try{localStorage.removeItem('fb_rt')}catch(e){}
-    fbSignIn(true).then(ok=>{
-      if(ok){fbSave().then(()=>toast('Firebase connecté et synchronisé ✓'))}
-      rOptions();
-    });
-  } else {
-    setSyncStatus('idle','Firebase non configuré');
-    toast('Configuration sauvegardée');
-    rOptions();
-  }
+  // Config is hardcoded — no action needed
+  toast('Configuration Firebase integrée dans le fichier');
 }
 function sname(){S.settings.name=document.getElementById('opt-n').value.trim();save();updNC();toast('Nom enregistré ✓')}
 function stheme(t){S.settings.theme=t;save();applyTheme();rOptions()}
@@ -1380,11 +1356,9 @@ function del(type,id){
 }
 
 function doLogout(){
-  if(!confirm('Se déconnecter ?'))return;
-  stopRealtimeListener();
-  fbIdToken=null;fbTokenExpiry=0;firebaseUser=null;
-  if(firebaseAuth)firebaseAuth.signOut().catch(()=>{});
-  showLogin();
+  if(!confirm('Se deconnecter ?'))return;
+  fbStopListener();
+  if(fbAuth) fbAuth.signOut(); // triggers onAuthStateChanged -> showLogin()
 }
 
 // ══ TOAST ══
@@ -1416,46 +1390,7 @@ function skipLogin(){
   setTimeout(checkAutoTasks,800);
 }
 
-async function doLogin(){
-  const btn=document.getElementById('login-btn');
-  const errEl=document.getElementById('login-err');
-  const email=(document.getElementById('login-email')?.value||'').trim();
-  const pass=document.getElementById('login-pass')?.value||'';
-  const apiKey=(S.settings.fbApiKey||'').trim();
-
-  if(!apiKey){skipLogin();return;}
-  if(!email||!pass){showLoginErr('Veuillez remplir email et mot de passe');return;}
-
-  btn.disabled=true;btn.textContent='Connexion…';
-  errEl.style.display='none';
-
-  // Save credentials for sync
-  S.settings.fbEmail=email;
-  try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){}
-
-  // Override fbPass temporarily for sign-in
-  const savedPass=S.settings.fbPass;
-  S.settings.fbPass=pass;
-  fbIdToken=null;fbRefreshToken=null;
-
-  const ok=await fbSignIn(true);
-  if(!ok){
-    S.settings.fbPass=savedPass;
-    btn.disabled=false;btn.textContent='Se connecter';
-    showLoginErr('Email ou mot de passe incorrect');
-    return;
-  }
-  // Save pass and load data
-  S.settings.fbPass=pass;
-  try{localStorage.setItem('crm5',JSON.stringify(S))}catch(e){}
-
-  const loaded=await fbLoad();
-  if(loaded){applyTheme();updNC();}
-  hideLogin();
-  navigate('home');
-  tryReconnectFile();
-  setTimeout(checkAutoTasks,800);
-}
+// doLogin removed — Google only
 
 function showLoginErr(msg){
   const el=document.getElementById('login-err');
@@ -1463,30 +1398,10 @@ function showLoginErr(msg){
 }
 
 // ══ INIT ══
-load();           // load localStorage as fallback
+load();
 applyTheme();
-initFirebaseApp();
-setSyncStatus('syncing','Connexion...');
 showLogin();
-
-// Single auth state listener — handles login, silent reconnect, and logout
-firebaseAuth.onAuthStateChanged(async user=>{
-  if(user && user.uid===OWNER_UID){
-    firebaseUser=user;
-    try{ fbIdToken=await user.getIdToken(); fbTokenExpiry=Date.now()+3500000; }catch(e){}
-    // Start realtime listener — fires immediately with current data, then on every remote change
-    startRealtimeListener();
-    hideLogin();
-    navigate('home');
-    tryReconnectFile();
-    setTimeout(checkAutoTasks,800);
-  } else {
-    if(user){ firebaseAuth.signOut(); }
-    if(fbListener){ firebase.database(firebaseApp).ref('/').off('value',fbListener); fbListener=null; }
-    firebaseUser=null; fbIdToken=null;
-    showLogin();
-  }
-});
+fbInit(); // Firebase handles everything: auth state, data load, listener
 </script>
 </body>
 </html>
