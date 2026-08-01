@@ -651,14 +651,27 @@ function googleBtnHTML(){
 }
 
 async function fbLoadData(){
-  if(!fbDB||!fbUser) return false;
+  if(!fbDB)   { toast('⚠ Firebase DB non init'); return false; }
+  if(!fbUser) { toast('⚠ Pas de user Firebase'); return false; }
   setSyncStatus('syncing','Chargement...');
   try{
     const snap=await fbDB.ref('data').get();
     const val=snap.val();
-    if(val && val.offers){ fbApplyData(val); return true; }
+    if(!val){ toast('⚠ Firebase vide'); return false; }
+    // Convert Firebase objects back to arrays (Firebase ne conserve pas les tableaux vides)
+    ['offers','todos','clients','groups','products'].forEach(k=>{
+      if(val[k]&&!Array.isArray(val[k])) val[k]=Object.values(val[k]);
+      else if(!val[k]) val[k]=[];
+    });
+    if(!val.journal) val.journal={};
+    fbApplyData(val);
+    toast('Données chargées: '+val.offers.length+' offres, '+val.clients.length+' clients');
+    return true;
+  }catch(e){
+    toast('⚠ Erreur Firebase: '+e.message);
+    setSyncStatus('err','Erreur chargement');
     return false;
-  }catch(e){ console.error('fbLoad error',e); setSyncStatus('err','Erreur chargement'); return false; }
+  }
 }
 
 async function fbSaveData(){
