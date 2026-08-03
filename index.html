@@ -229,6 +229,36 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .fc-n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fc-o{color:var(--accent);font-weight:600;font-size:.77rem;flex-shrink:0}
 
+/* CLIENT SEARCH / FILTER / SORT / MULTISELECT */
+.cl-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.cl-search-row{display:flex;gap:9px;align-items:center}
+.cl-search{flex:1;position:relative}
+.cl-search input{padding-left:36px}
+.cl-search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-sub);font-size:.95rem;pointer-events:none}
+.cl-filter-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.cl-filter-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:20px;font-family:'Figtree',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;outline:none;transition:border-color .14s}
+.cl-filter-select:focus{border-color:var(--accent)}
+.cl-filter-select.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.cl-sort-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:20px;font-family:'Figtree',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;outline:none}
+.cl-filter-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:600;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent);cursor:pointer}
+.cl-filter-tag:hover{background:var(--danger-soft);color:var(--danger);border-color:var(--danger)}
+/* Checkbox on client rows */
+.cl-check{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin-top:14px}
+/* Bulk action bar */
+.bulk-bar{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:var(--surface);border:1px solid var(--accent);border-radius:var(--rx);
+  padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  box-shadow:0 8px 32px var(--accent-glow);z-index:50;
+  animation:pgIn .2s var(--ease);
+}
+.bulk-count{font-weight:700;font-size:.88rem;color:var(--accent);white-space:nowrap}
+.bulk-sep{width:1px;height:20px;background:var(--border)}
+/* Select-all row */
+.cl-select-row{display:flex;align-items:center;gap:10px;padding:8px 17px;font-size:.8rem;color:var(--text-sub);cursor:pointer;user-select:none}
+.cl-select-row:hover{color:var(--text)}
+/* Results count */
+.cl-results{font-size:.78rem;color:var(--text-sub);padding:2px 0}
 /* CLIENT DETAIL */
 .cl-hero{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:28px}
 .cl-av{width:60px;height:60px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:#fff;flex-shrink:0}
@@ -371,6 +401,19 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 /* TOAST */
 #toast{position:fixed;bottom:26px;left:calc(var(--sidebar-w) + 50%);transform:translateX(-50%);background:var(--grad);color:#fff;padding:10px 22px;border-radius:30px;font-size:.84rem;font-weight:600;z-index:500;box-shadow:0 4px 24px var(--accent-glow);opacity:0;transition:opacity .26s;pointer-events:none}
 
+/* MAP */
+#map-container{height:calc(100vh - 200px);min-height:400px;border-radius:var(--rx);border:1px solid var(--border);overflow:hidden;position:relative}
+.map-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.map-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--text-sub)}
+.map-leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;border:1.5px solid rgba(255,255,255,.4)}
+.map-geo-bar{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--rx-sm);padding:8px 14px;font-size:.8rem;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+/* Override Leaflet popup style */
+.leaflet-popup-content-wrapper{background:var(--surface)!important;border:1px solid var(--border-hi)!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,.4)!important;color:var(--text)!important}
+.leaflet-popup-tip{background:var(--surface)!important}
+.map-popup-name{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;margin-bottom:6px}
+.map-popup-meta{font-size:.78rem;color:var(--text-sub);line-height:1.8}
+.map-popup-btn{display:inline-flex;align-items:center;margin-top:10px;padding:6px 14px;background:var(--grad);color:#fff;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;border:none;font-family:'Figtree',sans-serif}
+
 /* MOBILE */
 @media(max-width:768px){
   :root{--sidebar-w:0px}
@@ -389,6 +432,17 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 </head>
 <body>
 <div id="login-screen" class="hidden">
@@ -437,9 +491,17 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span class="ni-lbl">Clients</span>
     </div>
+    <div class="ni" id="ni-map" onclick="navigate('map')">
+      <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span class="ni-lbl">Carte</span>
+    </div>
     <div class="ni" id="ni-journal" onclick="navigate('journal')">
       <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
       <span class="ni-lbl">Journal</span>
+    </div>
+    <div class="ni" id="ni-map" onclick="navigate('map')">
+      <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span class="ni-lbl">Carte</span>
     </div>
     <div class="ni" id="ni-options" onclick="navigate('options')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -467,8 +529,10 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
   <div id="vw-todos" class="pg hidden"></div>
   <div id="vw-clients" class="pg hidden"></div>
   <div id="vw-client-detail" class="pg hidden"></div>
+  <div id="vw-map" class="pg hidden"></div>
   <div id="vw-journal" class="pg hidden"></div>
   <div id="vw-options" class="pg hidden"></div>
+  <div id="vw-map" class="pg hidden"></div>
 </main>
 </div>
 
@@ -490,6 +554,8 @@ let S={
 let CV='home',CF='all',clk=null,PF=null;
 let selDay=null,calYear=null,calMonth=null,noteSaveQ=null;
 let fbApp=null,fbAuth=null,fbDB=null,fbUser=null,fbToken=null,fbListener=null,fbWriting=false,fbSaveTimer=null;
+let selClients=new Set(), clSearch='', clFilter={priority:'',group:'',postal:''}, clSort='name';
+let leafletMap=null, geoQueue=[], geoRunning=false;
 let fHandle=null,lastSavedAt=null,saveQueue=null;
 
 const FSA_SUPPORTED='showSaveFilePicker' in window;
@@ -795,14 +861,16 @@ function updNC(){
 function navigate(view,params={}){
   if(clk){clearInterval(clk);clk=null}
   CV=view;CF='all';PF=null;
+  if(view!=='clients'){selClients=new Set();}
+  if(view!=='map'&&leafletMap){leafletMap.remove();leafletMap=null;}
   document.querySelectorAll('.pg').forEach(v=>v.classList.add('hidden'));
   const el=document.getElementById(`vw-${view}`);
   if(el){el.classList.remove('hidden');el.style.animation='none';el.offsetHeight;el.style.animation=''}
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
-  const nm={home:'ni-home',offers:'ni-offers',todos:'ni-todos',clients:'ni-clients','client-detail':'ni-clients',journal:'ni-journal',options:'ni-options'};
+  const nm={home:'ni-home',offers:'ni-offers',todos:'ni-todos',clients:'ni-clients','client-detail':'ni-clients',journal:'ni-journal',map:'ni-map',options:'ni-options'};
   if(nm[view]){const ni=document.getElementById(nm[view]);if(ni)ni.classList.add('on')}
   updNC();window.scrollTo(0,0);
-  const R={home:rHome,offers:()=>rOffers(params),todos:()=>rTodos(params),clients:rClients,'client-detail':()=>rClientDet(params.id),journal:()=>rJournal(params),options:rOptions};
+  const R={home:rHome,offers:()=>rOffers(params),todos:()=>rTodos(params),clients:rClients,'client-detail':()=>rClientDet(params.id),journal:()=>rJournal(params),map:rMap,options:rOptions};
   if(R[view])R[view]();
 }
 
@@ -1001,28 +1069,195 @@ function tog(id){const t=S.todos.find(x=>x.id===id);if(t){t.done=!t.done;save();
 // ══ CLIENTS ══
 function rClients(){
   const el=document.getElementById('vw-clients');
+  selClients=new Set();
+
+  // Build unique groups & postal codes for filters
+  const groups=[...new Set(S.clients.map(c=>c.group).filter(Boolean))].sort();
+  const postals=[...new Set(S.clients.map(c=>{const m=(c.address||'').match(/\b\d{5}\b/);return m?m[0]:null}).filter(Boolean))].sort();
+
+  // Apply search + filters
+  let list=[...S.clients].filter(c=>{
+    if(clSearch){
+      const q=clSearch.toLowerCase();
+      const inCompany=c.company.toLowerCase().includes(q);
+      const inContact=(c.contacts||[]).some(ct=>(ct.name||'').toLowerCase().includes(q));
+      if(!inCompany&&!inContact) return false;
+    }
+    if(clFilter.priority&&c.priority!==clFilter.priority) return false;
+    if(clFilter.group&&c.group!==clFilter.group) return false;
+    if(clFilter.postal){const m=(c.address||'').match(/\b\d{5}\b/);if(!m||m[0]!==clFilter.postal) return false;}
+    return true;
+  });
+
+  // Sort
   const pOrd={forte:0,moyenne:1,faible:2};
-  const sorted=[...S.clients].sort((a,b)=>{const pa=pOrd[a.priority]??3,pb=pOrd[b.priority]??3;if(pa!==pb)return pa-pb;return a.company.localeCompare(b.company,'fr')});
+  if(clSort==='name')       list.sort((a,b)=>a.company.localeCompare(b.company,'fr'));
+  else if(clSort==='priority') list.sort((a,b)=>(pOrd[a.priority]??3)-(pOrd[b.priority]??3)||a.company.localeCompare(b.company,'fr'));
+  else if(clSort==='group') list.sort((a,b)=>(a.group||'zzz').localeCompare(b.group||'zzz','fr')||a.company.localeCompare(b.company,'fr'));
+  else if(clSort==='date')  list.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+
   el.innerHTML=`
   <div class="ph"><div class="ph-left"><div class="eyebrow">Portefeuille</div><h1 class="ptitle">Clients</h1></div><button class="btn btn-p" onclick="cl_form()">+ Nouveau client</button></div>
-  <div class="ilist">${sorted.length===0?`<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Aucun client enregistré</div><button class="btn btn-s" onclick="cl_form()">+ Créer</button></div>`:sorted.map(c=>{
-    const oc=S.offers.filter(o=>o.clientId===c.id).length,tc=S.todos.filter(t=>t.clientId===c.id).length;
-    return`<div class="ir" onclick="navigate('client-detail',{id:'${c.id}'})">
-      ${c.priority?`<div class="prio-dot ${CPD[c.priority]}"></div>`:`<div style="width:9px;flex-shrink:0"></div>`}
-      <div style="width:38px;height:38px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;color:#fff;flex-shrink:0">${c.company.charAt(0).toUpperCase()}</div>
-      <div class="ir-main">
-        <div class="ir-n">${esc(c.company)}</div>
-        <div class="ir-m">
-          ${c.priority?cpBadge(c.priority):''}
-          ${c.group?`<span class="group-tag">💼 ${esc(c.group)}</span>`:''}
-          ${c.contacts&&c.contacts.length?`<span>👤 ${esc(c.contacts[0].name)}</span>`:''}
-          ${oc?`<span class="tag">📋 ${oc} offre${oc>1?'s':''}</span>`:''}
-          ${tc?`<span class="tag">✅ ${tc} tâche${tc>1?'s':''}</span>`:''}
+
+  <!-- Search + Filters -->
+  <div class="cl-toolbar">
+    <div class="cl-search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--text-sub)" stroke-width="2" fill="none" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="cl-search" class="cl-search-inp" placeholder="Rechercher un client ou contact..." value="${esc(clSearch)}" oninput="clSetSearch(this.value)">
+    </div>
+    <div class="cl-filters">
+      <select class="fs" style="font-size:.8rem;padding:7px 10px" onchange="clSetFilter('priority',this.value)">
+        <option value="">Toutes priorités</option>
+        <option value="forte" ${clFilter.priority==='forte'?'selected':''}>🔴 FORTE</option>
+        <option value="moyenne" ${clFilter.priority==='moyenne'?'selected':''}>🟡 MOYENNE</option>
+        <option value="faible" ${clFilter.priority==='faible'?'selected':''}>🟢 FAIBLE</option>
+      </select>
+      <select class="fs" style="font-size:.8rem;padding:7px 10px" onchange="clSetFilter('group',this.value)">
+        <option value="">Tous les groupes</option>
+        ${groups.map(g=>`<option value="${esc(g)}" ${clFilter.group===g?'selected':''}>${esc(g)}</option>`).join('')}
+      </select>
+      ${postals.length?`<select class="fs" style="font-size:.8rem;padding:7px 10px" onchange="clSetFilter('postal',this.value)">
+        <option value="">Tous codes postaux</option>
+        ${postals.map(p=>`<option value="${p}" ${clFilter.postal===p?'selected':''}>${p}</option>`).join('')}
+      </select>`:''}
+      <select class="fs" style="font-size:.8rem;padding:7px 10px" onchange="clSetSort(this.value)">
+        <option value="name" ${clSort==='name'?'selected':''}>Tri : Nom A→Z</option>
+        <option value="priority" ${clSort==='priority'?'selected':''}>Tri : Priorité</option>
+        <option value="group" ${clSort==='group'?'selected':''}>Tri : Groupe</option>
+        <option value="date" ${clSort==='date'?'selected':''}>Tri : Date création</option>
+      </select>
+      ${(clSearch||clFilter.priority||clFilter.group||clFilter.postal)?`<button class="btn btn-g btn-sm" onclick="clResetFilters()">✕ Réinitialiser</button>`:''}
+    </div>
+  </div>
+
+  <!-- Bulk action bar (visible when selection) -->
+  <div id="cl-bulk-bar" class="cl-bulk-bar hidden">
+    <div class="cl-bulk-info"><input type="checkbox" id="cl-check-all" onchange="clToggleAll(this.checked)" style="accent-color:var(--accent);width:15px;height:15px"> <span id="cl-sel-count">0 sélectionné(s)</span></div>
+    <div class="cl-bulk-actions">
+      <button class="btn btn-s btn-sm" onclick="clBulkTask()" title="Créer une tâche pour tous">✅ Tâche</button>
+      <button class="btn btn-s btn-sm" onclick="clBulkMail()" title="Écrire à tous">✉ Mail</button>
+      <button class="btn btn-s btn-sm" onclick="clBulkPriority()" title="Changer priorité">⭐ Priorité</button>
+      <button class="btn btn-d btn-sm" onclick="clBulkDelete()" title="Supprimer tous">🗑 Supprimer</button>
+    </div>
+  </div>
+
+  <!-- List -->
+  <div class="ilist">
+  ${list.length===0?`<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">${clSearch||clFilter.priority||clFilter.group||clFilter.postal?'Aucun client ne correspond aux filtres':'Aucun client enregistré'}</div><button class="btn btn-s" onclick="cl_form()">+ Créer</button></div>`:
+    list.map(c=>{
+      const oc=S.offers.filter(o=>o.clientId===c.id).length,tc=S.todos.filter(t=>t.clientId===c.id).length;
+      return`<div class="ir cl-row" id="clr-${c.id}" onclick="clRowClick(event,'${c.id}')">
+        <div onclick="event.stopPropagation()" style="flex-shrink:0;padding-top:2px">
+          <input type="checkbox" class="cl-chk" data-id="${c.id}" onchange="clToggleSel('${c.id}',this.checked)" style="accent-color:var(--accent);width:15px;height:15px">
         </div>
-      </div>
-      <div class="ir-act" onclick="event.stopPropagation()"><button class="ibt" onclick="cl_form('${c.id}')">✏️</button><button class="ibt del" onclick="del('client','${c.id}')">🗑</button></div>
-    </div>`}).join('')}</div>`;
+        ${c.priority?`<div class="prio-dot ${CPD[c.priority]}"></div>`:`<div style="width:9px;flex-shrink:0"></div>`}
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;color:#fff;flex-shrink:0">${c.company.charAt(0).toUpperCase()}</div>
+        <div class="ir-main">
+          <div class="ir-n">${esc(c.company)}</div>
+          <div class="ir-m">
+            ${c.priority?cpBadge(c.priority):''}
+            ${c.group?`<span class="group-tag">💼 ${esc(c.group)}</span>`:''}
+            ${c.contacts&&c.contacts.length?`<span>👤 ${esc(c.contacts[0].name)}</span>`:''}
+            ${oc?`<span class="tag">📋 ${oc} offre${oc>1?'s':''}</span>`:''}
+            ${tc?`<span class="tag">✅ ${tc} tâche${tc>1?'s':''}</span>`:''}
+          </div>
+        </div>
+        <div class="ir-act" onclick="event.stopPropagation()">
+          <button class="ibt" onclick="cl_form('${c.id}')">✏️</button>
+          <button class="ibt del" onclick="del('client','${c.id}')">🗑</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
+
+// ── Client search/filter/sort helpers
+function clSetSearch(v){ clSearch=v; rClients(); }
+function clSetFilter(k,v){ clFilter[k]=v; rClients(); }
+function clSetSort(v){ clSort=v; rClients(); }
+function clResetFilters(){ clSearch=''; clFilter={priority:'',group:'',postal:''}; rClients(); }
+
+function clRowClick(e,id){
+  // If click is on the row itself (not checkbox or actions), open detail
+  if(selClients.size===0) navigate('client-detail',{id});
+}
+
+function clToggleSel(id,checked){
+  if(checked) selClients.add(id); else selClients.delete(id);
+  clUpdateBulkBar();
+}
+function clToggleAll(checked){
+  document.querySelectorAll('.cl-chk').forEach(cb=>{
+    cb.checked=checked;
+    if(checked) selClients.add(cb.dataset.id); else selClients.delete(cb.dataset.id);
+  });
+  clUpdateBulkBar();
+}
+function clUpdateBulkBar(){
+  const bar=document.getElementById('cl-bulk-bar');
+  const cnt=document.getElementById('cl-sel-count');
+  const allChk=document.getElementById('cl-check-all');
+  if(!bar) return;
+  const n=selClients.size;
+  if(n>0){ bar.classList.remove('hidden'); if(cnt) cnt.textContent=n+' sélectionné'+(n>1?'s':''); }
+  else { bar.classList.add('hidden'); }
+  const totalVisible=document.querySelectorAll('.cl-chk').length;
+  if(allChk) allChk.indeterminate=n>0&&n<totalVisible;
+  if(allChk) allChk.checked=n===totalVisible&&n>0;
+}
+
+// ── Bulk actions
+function clBulkTask(){
+  const ids=[...selClients];
+  if(!ids.length) return;
+  // Pre-select first client in the form, user can change
+  cm();
+  td_form();
+  // Auto-select client if only one selected
+  if(ids.length===1){ setTimeout(()=>{ const sel=document.getElementById('td-c'); if(sel) sel.value=ids[0]; },50); }
+  else toast(`Créez la tâche — elle sera assignée manuellement parmi les ${ids.length} clients`);
+}
+
+function clBulkMail(){
+  const ids=[...selClients];
+  const emails=[];
+  ids.forEach(id=>{
+    const c=S.clients.find(x=>x.id===id);
+    if(c&&c.contacts) c.contacts.forEach(ct=>{ if(ct.email) emails.push(ct.email); });
+  });
+  if(!emails.length){ toast('Aucun email trouvé dans les fiches contacts'); return; }
+  const gmailUrl='https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(emails.join(','));
+  window.open(gmailUrl,'_blank');
+}
+
+function clBulkPriority(){
+  const ids=[...selClients];
+  if(!ids.length) return;
+  om(`<div class="mh"><h2 class="mt">Changer la priorité</h2><button class="mc" onclick="cm()">✕</button></div>
+  <p style="color:var(--text-sub);font-size:.88rem;margin-bottom:18px">${ids.length} client(s) sélectionné(s)</p>
+  <div class="prio-pick">
+    <div class="pp" onclick="clBulkSetPriority('forte')">🔴 FORTE</div>
+    <div class="pp" onclick="clBulkSetPriority('moyenne')">🟡 MOYENNE</div>
+    <div class="pp" onclick="clBulkSetPriority('faible')">🟢 FAIBLE</div>
+  </div>
+  <button class="btn btn-g btn-sm" style="margin-top:14px" onclick="clBulkSetPriority(null)">Retirer la priorité</button>`);
+}
+function clBulkSetPriority(p){
+  [...selClients].forEach(id=>{ const c=S.clients.find(x=>x.id===id); if(c) c.priority=p; });
+  save(); cm(); rClients(); toast('Priorité mise à jour ✓');
+}
+
+function clBulkDelete(){
+  const n=selClients.size;
+  if(!confirm(`Supprimer ${n} client(s) ? Cette action est irréversible.`)) return;
+  [...selClients].forEach(id=>{
+    S.clients=S.clients.filter(x=>x.id!==id);
+    S.offers.forEach(o=>{ if(o.clientId===id) o.clientId=null; });
+    S.todos.forEach(t=>{ if(t.clientId===id) t.clientId=null; });
+  });
+  save(); selClients=new Set(); rClients(); toast(`${n} client(s) supprimé(s) ✓`);
+}
+
 function rClientDet(id){
   const c=S.clients.find(x=>x.id===id);if(!c){navigate('clients');return}
   const co=S.offers.filter(o=>o.clientId===id),ct=S.todos.filter(t=>t.clientId===id);
@@ -1101,11 +1336,148 @@ function scl(id){
   let group=grSel==='__new__'?grNew:(grSel||'');
   if(group&&grSel==='__new__'&&!S.groups.includes(group))S.groups.push(group);
   const priority=document.getElementById('cl-prio').value||null;
-  const data={id:id||uid(),company,address:document.getElementById('cl-ad').value.trim(),contacts,group:group||null,priority:priority||null};
+  const old=id?S.clients.find(x=>x.id===id):null;
+  const data={id:id||uid(),company,address:document.getElementById('cl-ad').value.trim(),contacts,group:group||null,priority:priority||null,createdAt:old?.createdAt||today()};
   if(id){const i=S.clients.findIndex(x=>x.id===id);if(i>=0)S.clients[i]=data}else S.clients.push(data);
   save();cm();updNC();
   if(CV==='clients')rClients();else if(CV==='client-detail')rClientDet(data.id);else if(CV==='home')rHome();
   toast('Client enregistré ✓');
+  // Geocode if address changed
+  if(data.address&&(!data.lat||!data.lng)) setTimeout(async()=>{ const ok=await geocodeClient(data); if(ok)save(); },200);
+}
+
+// ══ MAP ══
+function rMap(){
+  const el=document.getElementById('vw-map');
+  const withCoords=S.clients.filter(c=>c.lat&&c.lon).length;
+  const withAddr=S.clients.filter(c=>c.address&&c.address.trim()).length;
+  const needsGeo=S.clients.filter(c=>c.address&&c.address.trim()&&!c.lat).length;
+
+  el.innerHTML=`
+  <div class="ph">
+    <div class="ph-left"><div class="eyebrow">Portefeuille</div><h1 class="ptitle">Carte clients</h1></div>
+    <button class="btn btn-s btn-sm" onclick="geoAll(true)">🔄 Recalculer positions</button>
+  </div>
+  ${needsGeo>0?`<div class="map-geo-bar" id="geo-status-bar">📍 ${needsGeo} client(s) sans coordonnées — géocodage en cours...</div>`:''}
+  <div class="map-top">
+    <div class="map-legend">
+      <span><span class="map-leg-dot" style="background:var(--danger)"></span>Priorité FORTE</span>
+      <span><span class="map-leg-dot" style="background:var(--warning)"></span>MOYENNE</span>
+      <span><span class="map-leg-dot" style="background:var(--success)"></span>FAIBLE</span>
+      <span><span class="map-leg-dot" style="background:var(--accent)"></span>Non définie</span>
+    </div>
+    <div style="font-size:.78rem;color:var(--text-sub)">${withCoords} client(s) sur ${S.clients.length} placé(s)</div>
+  </div>
+  <div id="map-container"></div>`;
+
+  // Init Leaflet after DOM is painted
+  requestAnimationFrame(()=>requestAnimationFrame(initLeafletMap));
+  if(needsGeo>0) setTimeout(()=>geoAll(false), 400);
+}
+
+function initLeafletMap(){
+  if(leafletMap){ leafletMap.remove(); leafletMap=null; }
+  const el=document.getElementById('map-container');
+  if(!el) return;
+
+  // Apply dark/light tiles based on theme
+  const isDark=document.documentElement.getAttribute('data-theme')!=='light';
+  leafletMap=L.map('map-container',{zoomControl:true}).setView([46.8,2.3],6);
+
+  const tileUrl=isDark
+    ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    :'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+  L.tileLayer(tileUrl,{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
+    subdomains:'abcd',maxZoom:19
+  }).addTo(leafletMap);
+
+  // Marker cluster group
+  const cluster=L.markerClusterGroup({
+    maxClusterRadius:50,
+    iconCreateFunction: function(c){
+      const n=c.getChildCount();
+      return L.divIcon({html:`<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3)">${n}</div>`,className:'',iconSize:[36,36]});
+    }
+  });
+
+  const bounds=[];
+  S.clients.forEach(c=>{
+    if(!c.lat||!c.lon) return;
+    const icon=clientMarkerIcon(c.priority);
+    const m=L.marker([c.lat,c.lon],{icon});
+    m.bindPopup(clientPopupHtml(c),{maxWidth:240,className:'map-popup'});
+    cluster.addLayer(m);
+    bounds.push([c.lat,c.lon]);
+  });
+
+  leafletMap.addLayer(cluster);
+  if(bounds.length>0) leafletMap.fitBounds(bounds,{padding:[40,40],maxZoom:12});
+}
+
+function clientMarkerIcon(priority){
+  const colors={forte:'#ff4f5e',moyenne:'#ffb340',faible:'#00d18a'};
+  const col=colors[priority]||'#4272ff';
+  return L.divIcon({
+    html:`<div style="width:14px;height:14px;border-radius:50%;background:${col};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.45)"></div>`,
+    className:'',iconSize:[14,14],iconAnchor:[7,7],popupAnchor:[0,-10]
+  });
+}
+
+function clientPopupHtml(c){
+  const pBadge=c.priority?`<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:700;background:${c.priority==='forte'?'rgba(255,79,94,.15)':c.priority==='moyenne'?'rgba(255,179,64,.15)':'rgba(0,209,138,.15)'};color:${c.priority==='forte'?'#ff4f5e':c.priority==='moyenne'?'#ffb340':'#00d18a'}">${{forte:'🔴 FORTE',moyenne:'🟡 MOYENNE',faible:'🟢 FAIBLE'}[c.priority]}</span>`:'';
+  const firstContact=c.contacts&&c.contacts.length?c.contacts[0]:null;
+  return `<div style="min-width:180px;font-family:'Figtree',sans-serif">
+    <div class="map-popup-name">${esc(c.company)}</div>
+    <div style="margin-bottom:6px">${pBadge}</div>
+    <div class="map-popup-meta">
+      ${c.group?`💼 ${esc(c.group)}<br>`:''}
+      ${firstContact?`👤 ${esc(firstContact.name)}<br>`:''}
+      ${c.address?`📍 ${esc(c.address.split('\n')[0])}`:''}
+    </div>
+    <button class="map-popup-btn" onclick="navigate('client-detail',{id:'${c.id}'})">Voir la fiche →</button>
+  </div>`;
+}
+
+// ── Geocoding via Nominatim
+async function geoAll(force=false){
+  geoQueue=[];
+  S.clients.forEach(c=>{
+    if(c.address&&c.address.trim()&&(force||(!c.lat||!c.lon))) geoQueue.push(c.id);
+  });
+  if(geoQueue.length===0){ toast('Toutes les positions sont à jour ✓'); return; }
+  toast(`Géocodage de ${geoQueue.length} adresse(s)...`);
+  if(!geoRunning) geoNext();
+}
+
+async function geoNext(){
+  if(geoQueue.length===0){
+    geoRunning=false;
+    save();
+    toast('Positions mises à jour ✓');
+    if(CV==='map') rMap();
+    return;
+  }
+  geoRunning=true;
+  const id=geoQueue.shift();
+  const c=S.clients.find(x=>x.id===id);
+  if(!c||!c.address){ setTimeout(geoNext,200); return; }
+  try{
+    const q=encodeURIComponent(c.address.split('\n').join(' '))
+    const url=`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&addressdetails=0`;
+    const r=await fetch(url,{headers:{'User-Agent':'CRMarine/1.0'}});
+    const data=await r.json();
+    if(data&&data.length>0){
+      c.lat=parseFloat(data[0].lat);
+      c.lon=parseFloat(data[0].lon);
+      // Update bar
+      const bar=document.getElementById('geo-status-bar');
+      if(bar) bar.textContent=`📍 Géocodage — ${geoQueue.length} adresse(s) restante(s)...`;
+    }
+  }catch(e){ console.warn('Geo error for',c.company,e); }
+  // Nominatim: 1 req/sec max
+  setTimeout(geoNext, 1100);
 }
 
 // ══ JOURNAL ══
@@ -1383,6 +1755,133 @@ function doLogout(){
   if(!confirm('Se deconnecter ?'))return;
   fbStopListener();
   if(fbAuth) fbAuth.signOut(); // triggers onAuthStateChanged -> showLogin()
+}
+
+// ══ MAP ══
+let mapInstance=null;
+let geocodeQueue=[];
+let geocoding=false;
+
+async function geocodeClient(c){
+  if(!c.address||c.address.trim()==='') return false;
+  if(c.lat&&c.lng) return false; // already done
+  const q=encodeURIComponent((c.address||'').split('\n').join(' ').trim());
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),
+      {headers:{'Accept-Language':'fr','User-Agent':'MonCRM/1.0'}});
+    if(!r.ok) return false;
+    const d=await r.json();
+    if(d&&d[0]){ c.lat=parseFloat(d[0].lat); c.lng=parseFloat(d[0].lon); return true; }
+    c.lat=null; c.lng=null; return false;
+  }catch(e){ return false; }
+}
+
+async function geocodeAll(onProgress){
+  if(geocoding) return;
+  geocoding=true;
+  let changed=false;
+  const toGeocode=S.clients.filter(c=>c.address&&(!c.lat||!c.lng));
+  for(let i=0;i<toGeocode.length;i++){
+    const c=toGeocode[i];
+    if(onProgress) onProgress(i+1,toGeocode.length,c.company);
+    const ok=await geocodeClient(c);
+    if(ok) changed=true;
+    if(i<toGeocode.length-1) await new Promise(r=>setTimeout(r,1200)); // Nominatim rate limit
+  }
+  if(changed) save();
+  geocoding=false;
+  return changed;
+}
+
+function rMap(){
+  const el=document.getElementById('vw-map');
+  const withCoords=S.clients.filter(c=>c.lat&&c.lng);
+  const noAddr=S.clients.filter(c=>!c.address||c.address.trim()==='');
+  const noCoords=S.clients.filter(c=>c.address&&c.address.trim()!==''&&(!c.lat||!c.lng));
+
+  el.innerHTML=`
+  <div class="ph">
+    <div class="ph-left"><div class="eyebrow">Géographie</div><h1 class="ptitle">Carte clients</h1></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="map-stats"><span>${withCoords.length} placé(s)</span><span style="opacity:.4">·</span><span>${noCoords.length} sans position</span></div>
+      <button class="btn btn-g btn-sm" id="geocode-btn" onclick="mapGeocodeAll()">🗺 Localiser les clients</button>
+    </div>
+  </div>
+  ${noCoords.length>0?`<div class="map-no-addr">⚠ ${noCoords.length} client(s) avec adresse non localisée — cliquez "Localiser" (peut prendre quelques secondes)</div>`:''}
+  <div class="map-wrap">
+    <div id="map-container"></div>
+    <div class="map-legend">
+      <span><span class="map-legend-dot" style="background:var(--danger)"></span>FORTE</span>
+      <span><span class="map-legend-dot" style="background:var(--warning)"></span>MOYENNE</span>
+      <span><span class="map-legend-dot" style="background:var(--success)"></span>FAIBLE</span>
+      <span><span class="map-legend-dot" style="background:var(--accent)"></span>Sans priorité</span>
+    </div>
+  </div>`;
+
+  // Destroy previous map instance
+  if(mapInstance){ try{mapInstance.remove()}catch(e){} mapInstance=null; }
+
+  setTimeout(()=>{
+    mapInstance=L.map('map-container',{zoomControl:true}).setView([46.8,2.3],6);
+
+    // Tiles — light or dark based on theme
+    const isDark=S.settings.theme!=='light';
+    const tileUrl=isDark
+      ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      :'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    L.tileLayer(tileUrl,{attribution:'© OpenStreetMap © CARTO',maxZoom:19}).addTo(mapInstance);
+
+    // Marker cluster group
+    const cluster=L.markerClusterGroup({
+      showCoverageOnHover:false,
+      maxClusterRadius:50,
+      iconCreateFunction:function(c){
+        const n=c.getChildCount();
+        return L.divIcon({html:`<div style="background:var(--accent,#4272ff);color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">${n}</div>`,className:'',iconSize:[36,36]});
+      }
+    });
+
+    const colors={forte:'#ff4f5e',moyenne:'#ffb340',faible:'#00d18a'};
+    const bounds=[];
+
+    withCoords.forEach(c=>{
+      const col=colors[c.priority]||'#4272ff';
+      const m=L.circleMarker([c.lat,c.lng],{
+        radius:9,fillColor:col,color:'#fff',weight:2.5,opacity:1,fillOpacity:.92
+      });
+
+      const popupHtml=`<div style="min-width:190px;font-family:sans-serif">
+        <div class="cl-popup-name">${esc(c.company)}</div>
+        ${c.priority?`<div class="cl-popup-meta" style="color:${col};font-weight:600">${CPL[c.priority]}</div>`:''}
+        ${c.group?`<div class="cl-popup-meta">💼 ${esc(c.group)}</div>`:''}
+        ${c.address?`<div class="cl-popup-meta">${esc(c.address.split('\n').join(', '))}</div>`:''}
+        ${(c.contacts||[]).filter(ct=>ct.email).map(ct=>`<div class="cl-popup-meta">✉ ${esc(ct.email)}</div>`).join('')}
+        <button class="cl-popup-btn" onclick="navigate('client-detail',{id:'${c.id}'})">Voir la fiche →</button>
+      </div>`;
+      m.bindPopup(popupHtml,{maxWidth:240});
+      cluster.addLayer(m);
+      bounds.push([c.lat,c.lng]);
+    });
+
+    mapInstance.addLayer(cluster);
+    if(bounds.length>0) mapInstance.fitBounds(bounds,{padding:[30,30],maxZoom:14});
+
+    // Auto-geocode in background if needed
+    if(noCoords.length>0&&!geocoding) setTimeout(()=>mapGeocodeAll(),500);
+  },80);
+}
+
+async function mapGeocodeAll(){
+  const btn=document.getElementById('geocode-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Localisation...';}
+  const changed=await geocodeAll((i,total,name)=>{
+    if(btn) btn.textContent=`⏳ ${i}/${total} — ${name.substring(0,20)}`;
+  });
+  if(changed){ rMap(); toast('Positions mises à jour ✓'); }
+  else{
+    if(btn){btn.disabled=false;btn.textContent='🗺 Localiser les clients';}
+    if(!changed) toast('Toutes les positions sont à jour');
+  }
 }
 
 // ══ TOAST ══
