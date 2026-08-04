@@ -1259,12 +1259,6 @@ function handleLogoFile(e){
   };
   reader.readAsDataURL(file);
 }
-function showLogoPreview(dataUrl){
-  const wrap=document.getElementById('logo-preview-wrap');
-  const dz=document.getElementById('logo-drop-zone');
-  if(wrap) wrap.innerHTML=`<div class="logo-preview"><img src="${dataUrl}" alt="logo"><button class="logo-remove" onclick="removeLogo()" title="Supprimer">✕</button></div>`;
-  if(dz) dz.style.display='none';
-}
 function removeLogo(){
   const wrap=document.getElementById('logo-preview-wrap');
   const dz=document.getElementById('logo-drop-zone');
@@ -1400,15 +1394,18 @@ function cl_form(id=null){
     <div class="fg"><label class="fl">Nom de la société *</label><input id="cl-co" class="fi" value="${esc(c?.company||'')}" placeholder="Acme Corp"></div>
     <div class="fg"><label class="fl">Logo</label>
       <div style="display:flex;align-items:center;gap:14px">
-        <div id="logo-preview-wrap">${c?.logo?`<div class="logo-preview"><img src="${c.logo}" alt="logo"><button class="logo-remove" onclick="removeLogo()" title="Supprimer">✕</button></div>`:''}
+        ${c?.logo
+          ?`<img id="logo-preview-img" src="${c.logo}" class="logo-thumb" onclick="document.getElementById('logo-file-inp').click()" title="Changer le logo">`
+          :`<div id="logo-preview-img" class="logo-placeholder" onclick="document.getElementById('logo-file-inp').click()">📷</div>`}
+        <div>
+          <input type="file" id="logo-file-inp" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+          <button class="btn btn-g btn-sm" onclick="document.getElementById('logo-file-inp').click()">📷 Choisir</button>
+          <button id="logo-rm-btn" class="btn btn-g btn-sm" onclick="removeLogo()" style="margin-left:6px;${c?.logo?'':'display:none'}">✕ Retirer</button>
+          <div style="font-size:.72rem;color:var(--text-sub);margin-top:5px">JPG, PNG · max 5 Mo</div>
         </div>
-        <div id="logo-drop-zone" class="logo-drop" style="${c?.logo?'display:none':''}" onclick="document.getElementById('logo-file-inp').click()">
-          🖼 Cliquez pour choisir un logo<div style="font-size:.72rem;margin-top:3px;opacity:.6">PNG, JPG · Max 2 Mo · Redimensionné automatiquement</div>
-        </div>
-        <input type="file" id="logo-file-inp" accept="image/*" style="display:none" onchange="handleLogoFile(event)">
       </div>
     </div>
-    <div class="f2">
+        <div class="f2">
       <div class="fg"><label class="fl">Groupe</label>
         <select id="cl-gr" class="fs" onchange="onGrChange()">
           <option value="">— Aucun groupe —</option>
