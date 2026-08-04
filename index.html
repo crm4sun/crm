@@ -1392,6 +1392,7 @@ function rClientDet(id){
 
 function cl_form(id=null){
   const c=id?S.clients.find(x=>x.id===id):null;
+  pendingLogo=null;
   const cts=c?.contacts||[{name:'',email:'',phone:'',role:''}];
   const grpOpts=S.groups.map(g=>`<option value="${esc(g)}" ${c?.group===g?'selected':''}>${esc(g)}</option>`).join('');
   const curPrio=c?.priority||'';
@@ -1449,7 +1450,12 @@ function scl(id){
   if(group&&grSel==='__new__'&&!S.groups.includes(group))S.groups.push(group);
   const priority=document.getElementById('cl-prio').value||null;
   const old=id?S.clients.find(x=>x.id===id):null;
-  const data={id:id||uid(),company,address:document.getElementById('cl-ad').value.trim(),contacts,group:group||null,priority:priority||null,createdAt:old?.createdAt||today()};
+  // Logo
+  let logo=old?.logo||null;
+  if(pendingLogo==='__remove__') logo=null;
+  else if(pendingLogo) logo=pendingLogo;
+  pendingLogo=null;
+  const data={id:id||uid(),company,address:document.getElementById('cl-ad').value.trim(),contacts,group:group||null,priority:priority||null,createdAt:old?.createdAt||today(),logo,lat:old?.lat||null,lon:old?.lon||null};
   if(id){const i=S.clients.findIndex(x=>x.id===id);if(i>=0)S.clients[i]=data}else S.clients.push(data);
   save();cm();updNC();
   if(CV==='clients')rClients();else if(CV==='client-detail')rClientDet(data.id);else if(CV==='home')rHome();
