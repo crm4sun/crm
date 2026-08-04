@@ -1358,7 +1358,7 @@ function rMap(){
     <div class="ph-left"><div class="eyebrow">Portefeuille</div><h1 class="ptitle">Carte clients</h1></div>
     <button class="btn btn-s btn-sm" onclick="geoAll(true)">🔄 Recalculer positions</button>
   </div>
-  ${needsGeo>0?`<div class="map-geo-bar" id="geo-status-bar">📍 ${needsGeo} client(s) sans coordonnées — géocodage en cours...</div>`:''}
+  ${needsGeo>0?`<div class="map-geo-bar" id="geo-status-bar">📍 ${needsGeo} client(s) sans coordonnées — <span style="text-decoration:underline;cursor:pointer" onclick="geoAll(false)">cliquez pour localiser</span></div>`:''}
   <div class="map-top">
     <div class="map-legend">
       <span><span class="map-leg-dot" style="background:var(--danger)"></span>Priorité FORTE</span>
@@ -1372,7 +1372,7 @@ function rMap(){
 
   // Init Leaflet after DOM is painted
   requestAnimationFrame(()=>requestAnimationFrame(initLeafletMap));
-  if(needsGeo>0) setTimeout(()=>geoAll(false), 400);
+  if(needsGeo>0) setTimeout(()=>geoAll(false), 600);
 }
 
 function initLeafletMap(){
@@ -1386,11 +1386,15 @@ function initLeafletMap(){
 
   const tileUrl=isDark
     ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    :'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    :'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png';
+  const tileAttr=isDark
+    ?'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>'
+    :'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://www.openstreetmap.fr/">OSM France</a>';
 
   L.tileLayer(tileUrl,{
-    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
-    subdomains:'abcd',maxZoom:19
+    attribution:tileAttr,
+    subdomains:isDark?'abcd':'abc',
+    maxZoom:19
   }).addTo(leafletMap);
 
   // Marker cluster group
@@ -1464,9 +1468,11 @@ async function geoNext(){
   const c=S.clients.find(x=>x.id===id);
   if(!c||!c.address){ setTimeout(geoNext,200); return; }
   try{
-    const q=encodeURIComponent(c.address.split('\n').join(' '))
-    const url=`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&addressdetails=0`;
-    const r=await fetch(url,{headers:{'User-Agent':'CRMarine/1.0'}});
+    const addr=(c.address||'').split('\n').join(' ').trim();
+    const q=encodeURIComponent(addr+', France');
+    const url='https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=1&countrycodes=fr&accept-language=fr';
+    const r=await fetch(url);
+    if(!r.ok) throw new Error('HTTP '+r.status);
     const data=await r.json();
     if(data&&data.length>0){
       c.lat=parseFloat(data[0].lat);
@@ -1762,25 +1768,12 @@ let mapInstance=null;
 let geocodeQueue=[];
 let geocoding=false;
 
-async function geocodeClient(c){
-  if(!c.address||c.address.trim()==='') return false;
-  if(c.lat&&c.lng) return false; // already done
-  const q=encodeURIComponent((c.address||'').split('\n').join(' ').trim());
-  try{
-    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),
-      {headers:{'Accept-Language':'fr','User-Agent':'MonCRM/1.0'}});
-    if(!r.ok) return false;
-    const d=await r.json();
-    if(d&&d[0]){ c.lat=parseFloat(d[0].lat); c.lng=parseFloat(d[0].lon); return true; }
-    c.lat=null; c.lng=null; return false;
-  }catch(e){ return false; }
-}
 
 async function geocodeAll(onProgress){
   if(geocoding) return;
   geocoding=true;
   let changed=false;
-  const toGeocode=S.clients.filter(c=>c.address&&(!c.lat||!c.lng));
+  const toGeocode=S.clients.filter(c=>c.address&&(!c.lat||!c.lon));
   for(let i=0;i<toGeocode.length;i++){
     const c=toGeocode[i];
     if(onProgress) onProgress(i+1,toGeocode.length,c.company);
@@ -1793,97 +1786,8 @@ async function geocodeAll(onProgress){
   return changed;
 }
 
-function rMap(){
-  const el=document.getElementById('vw-map');
-  const withCoords=S.clients.filter(c=>c.lat&&c.lng);
-  const noAddr=S.clients.filter(c=>!c.address||c.address.trim()==='');
-  const noCoords=S.clients.filter(c=>c.address&&c.address.trim()!==''&&(!c.lat||!c.lng));
 
-  el.innerHTML=`
-  <div class="ph">
-    <div class="ph-left"><div class="eyebrow">Géographie</div><h1 class="ptitle">Carte clients</h1></div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <div class="map-stats"><span>${withCoords.length} placé(s)</span><span style="opacity:.4">·</span><span>${noCoords.length} sans position</span></div>
-      <button class="btn btn-g btn-sm" id="geocode-btn" onclick="mapGeocodeAll()">🗺 Localiser les clients</button>
-    </div>
-  </div>
-  ${noCoords.length>0?`<div class="map-no-addr">⚠ ${noCoords.length} client(s) avec adresse non localisée — cliquez "Localiser" (peut prendre quelques secondes)</div>`:''}
-  <div class="map-wrap">
-    <div id="map-container"></div>
-    <div class="map-legend">
-      <span><span class="map-legend-dot" style="background:var(--danger)"></span>FORTE</span>
-      <span><span class="map-legend-dot" style="background:var(--warning)"></span>MOYENNE</span>
-      <span><span class="map-legend-dot" style="background:var(--success)"></span>FAIBLE</span>
-      <span><span class="map-legend-dot" style="background:var(--accent)"></span>Sans priorité</span>
-    </div>
-  </div>`;
-
-  // Destroy previous map instance
-  if(mapInstance){ try{mapInstance.remove()}catch(e){} mapInstance=null; }
-
-  setTimeout(()=>{
-    mapInstance=L.map('map-container',{zoomControl:true}).setView([46.8,2.3],6);
-
-    // Tiles — light or dark based on theme
-    const isDark=S.settings.theme!=='light';
-    const tileUrl=isDark
-      ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      :'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-    L.tileLayer(tileUrl,{attribution:'© OpenStreetMap © CARTO',maxZoom:19}).addTo(mapInstance);
-
-    // Marker cluster group
-    const cluster=L.markerClusterGroup({
-      showCoverageOnHover:false,
-      maxClusterRadius:50,
-      iconCreateFunction:function(c){
-        const n=c.getChildCount();
-        return L.divIcon({html:`<div style="background:var(--accent,#4272ff);color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">${n}</div>`,className:'',iconSize:[36,36]});
-      }
-    });
-
-    const colors={forte:'#ff4f5e',moyenne:'#ffb340',faible:'#00d18a'};
-    const bounds=[];
-
-    withCoords.forEach(c=>{
-      const col=colors[c.priority]||'#4272ff';
-      const m=L.circleMarker([c.lat,c.lng],{
-        radius:9,fillColor:col,color:'#fff',weight:2.5,opacity:1,fillOpacity:.92
-      });
-
-      const popupHtml=`<div style="min-width:190px;font-family:sans-serif">
-        <div class="cl-popup-name">${esc(c.company)}</div>
-        ${c.priority?`<div class="cl-popup-meta" style="color:${col};font-weight:600">${CPL[c.priority]}</div>`:''}
-        ${c.group?`<div class="cl-popup-meta">💼 ${esc(c.group)}</div>`:''}
-        ${c.address?`<div class="cl-popup-meta">${esc(c.address.split('\n').join(', '))}</div>`:''}
-        ${(c.contacts||[]).filter(ct=>ct.email).map(ct=>`<div class="cl-popup-meta">✉ ${esc(ct.email)}</div>`).join('')}
-        <button class="cl-popup-btn" onclick="navigate('client-detail',{id:'${c.id}'})">Voir la fiche →</button>
-      </div>`;
-      m.bindPopup(popupHtml,{maxWidth:240});
-      cluster.addLayer(m);
-      bounds.push([c.lat,c.lng]);
-    });
-
-    mapInstance.addLayer(cluster);
-    if(bounds.length>0) mapInstance.fitBounds(bounds,{padding:[30,30],maxZoom:14});
-
-    // Auto-geocode in background if needed
-    if(noCoords.length>0&&!geocoding) setTimeout(()=>mapGeocodeAll(),500);
-  },80);
-}
-
-async function mapGeocodeAll(){
-  const btn=document.getElementById('geocode-btn');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Localisation...';}
-  const changed=await geocodeAll((i,total,name)=>{
-    if(btn) btn.textContent=`⏳ ${i}/${total} — ${name.substring(0,20)}`;
-  });
-  if(changed){ rMap(); toast('Positions mises à jour ✓'); }
-  else{
-    if(btn){btn.disabled=false;btn.textContent='🗺 Localiser les clients';}
-    if(!changed) toast('Toutes les positions sont à jour');
-  }
-}
-
+async 
 // ══ TOAST ══
 let tt=null;
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';if(tt)clearTimeout(tt);tt=setTimeout(()=>t.style.opacity='0',2400)}
