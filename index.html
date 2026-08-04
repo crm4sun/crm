@@ -447,6 +447,12 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .kb-card-meta{font-size:.72rem;color:var(--text-sub);display:flex;flex-wrap:wrap;gap:5px;align-items:center}
 .kb-card-logo{width:22px;height:22px;border-radius:4px;object-fit:cover;flex-shrink:0}
 .kb-drop-hint{text-align:center;padding:20px 10px;color:var(--text-faint);font-size:.78rem;font-style:italic}
+@media(min-width:769px){
+  .todos-filter-row{display:none}
+  .todos-list-wrap{display:none}
+  .todos-kanban-wrap{display:block}
+}
+.todos-kanban-wrap{display:none}
 /* MOBILE */
 @media(max-width:768px){
   :root{--sidebar-w:0px}
@@ -962,6 +968,7 @@ function navigate(view,params={}){
   CV=view;CF='all';PF=null;
   if(view!=='clients'){selClients=new Set();}
   if(view!=='offers'){kbFilterPrio='';}
+  if(view!=='todos'){tdKbFilter='';}
   if(view!=='map'&&leafletMap){leafletMap.remove();leafletMap=null;}
   document.querySelectorAll('.pg').forEach(v=>v.classList.add('hidden'));
   const el=document.getElementById(`vw-${view}`);
@@ -1201,14 +1208,16 @@ function rTodos(p={}){
   const nForte=S.clients.filter(c=>c.priority==='forte').length;
   el.innerHTML=`
   <div class="ph"><div class="ph-left"><div class="eyebrow">Organisation</div><h1 class="ptitle">Tâches</h1></div><button class="btn btn-p" onclick="td_form()">+ Nouvelle tâche</button></div>
-  <div class="frow"><div class="ftabs">
+  <div class="frow todos-filter-row"><div class="ftabs">
     <button class="ftab ${f==='all'?'on':''}" onclick="stf('all')">Toutes <span style="opacity:.6">${S.todos.length}</span></button>
     <button class="ftab ${f==='pending'?'on':''}" onclick="stf('pending')">À faire <span style="opacity:.6">${pend}</span></button>
     <button class="ftab ${f==='prioritaire'?'on':''}" onclick="stf('prioritaire')">Prioritaires</button>
     ${nForte?`<button class="ftab ${f==='forte'?'on':''}" onclick="stf('forte')"><span style="color:var(--danger)">●</span> Clients FORTE</button>`:''}
     <button class="ftab ${f==='done'?'on':''}" onclick="stf('done')">Faites <span style="opacity:.6">${done}</span></button>
   </div></div>
-  <div class="ilist">${list.length===0?`<div class="empty"><div class="empty-i">✅</div><div class="empty-t">Aucune tâche ici</div><button class="btn btn-s" onclick="td_form()">+ Créer</button></div>`:list.map(t=>trRow(t)).join('')}</div>`;
+  <div class="todos-list-wrap"><div class="ilist">${list.length===0?`<div class="empty"><div class="empty-i">✅</div><div class="empty-t">Aucune tâche ici</div><button class="btn btn-s" onclick="td_form()">+ Créer</button></div>`:list.map(t=>trRow(t)).join('')}</div></div>
+  <div class="todos-kanban-wrap" id="td-kb-wrap"></div>`;
+  setTimeout(rTodoKanban,0);
 }
 function stf(f){CF=f;rTodos({filter:f})}
 function trRow(t){
@@ -1269,6 +1278,96 @@ function std(id){
   save();cm();updNC();if(CV==='todos')rTodos({filter:CF});else if(CV==='home')rHome();toast('Tâche enregistrée ✓');
 }
 function tog(id){const t=S.todos.find(x=>x.id===id);if(t){t.done=!t.done;save();updNC()}if(CV==='todos')rTodos({filter:CF});else if(CV==='home')rHome()}
+
+// ══ KANBAN TODOS ══
+const KB_TODO_COLS=[
+  {key:'mineure',  label:'Mineure',     dot:'var(--text-sub)', bg:'var(--border)'},
+  {key:'normal',   label:'Normal',      dot:'var(--info)',     bg:'var(--info-soft)'},
+  {key:'prioritaire',label:'Prioritaire',dot:'var(--warning)', bg:'var(--warning-soft)'},
+  {key:'done',     label:'Terminées',   dot:'var(--success)',  bg:'var(--success-soft)'},
+];
+let tdKbFilter='', tdKbDragging=null;
+
+function rTodoKanban(){
+  const kw=document.getElementById('td-kb-wrap');if(!kw)return;
+  const pOrd={forte:0,moyenne:1,faible:2};
+  function sortTodos(list){
+    return [...list].sort((a,b)=>{
+      const ea=effPrio(b)-effPrio(a);if(ea!==0)return ea;
+      return(a.maxDate||'9999').localeCompare(b.maxDate||'9999');
+    });
+  }
+  const prioBar=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:.78rem;color:var(--text-sub);font-weight:600">Filtrer par priorité client :</span>
+    ${[['','Toutes'],['forte','🔴 FORTE'],['moyenne','🟡 MOYENNE'],['faible','🟢 FAIBLE']].map(([v,l])=>
+      `<button class="ftab ${tdKbFilter===v?'on':''}" onclick="tdKbSetPrio('${v}')">${l}</button>`
+    ).join('')}
+  </div>`;
+
+  kw.innerHTML=prioBar+`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">`+KB_TODO_COLS.map(col=>{
+    let todos;
+    if(col.key==='done') todos=S.todos.filter(t=>t.done);
+    else todos=S.todos.filter(t=>!t.done&&(t.priority||'normal')===col.key);
+    if(tdKbFilter) todos=todos.filter(t=>cobj(t.clientId)?.priority===tdKbFilter);
+    todos=sortTodos(todos);
+    return`<div class="kb-col" id="tdkbc-${col.key}"
+      ondragover="tdKbDragOver(event)"
+      ondragenter="tdKbDragEnter(event,'${col.key}')"
+      ondragleave="tdKbDragLeave(event,'${col.key}')"
+      ondrop="tdKbDrop(event,'${col.key}')">
+      <div class="kb-col-head">
+        <div class="kb-col-title">
+          <div style="width:8px;height:8px;border-radius:50%;background:${col.dot};flex-shrink:0"></div>
+          ${col.label}
+        </div>
+        <span class="kb-count" style="background:${col.bg};color:${col.dot}">${todos.length}</span>
+      </div>
+      <div class="kb-col-body" id="tdkbb-${col.key}">
+        ${todos.length===0?`<div class="kb-drop-hint">Déposer ici</div>`:todos.map(t=>tdKbCard(t)).join('')}
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function tdKbCard(t){
+  const c=cobj(t.clientId);
+  const logoHtml=c?.logo?`<img class="kb-card-logo" src="${c.logo}">`:'';
+  const prio=c?.priority?`<span style="font-size:.65rem;font-weight:700;color:${{forte:'var(--danger)',moyenne:'var(--warning)',faible:'var(--success)'}[c.priority]}">${CPL[c.priority]}</span>`:'';
+  const due=t.maxDate?`<span style="font-size:.7rem">${frel(t.maxDate)||fmtDate(t.maxDate)}</span>`:'';
+  return`<div class="kb-card ${t.done?'done':''}" draggable="true"
+    ondragstart="tdKbDragStart(event,'${t.id}')"
+    ondragend="tdKbDragEnd(event)"
+    onclick="tdDet('${t.id}')">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+      ${logoHtml}
+      <div class="kb-card-name" style="flex:1">${esc(t.name)}${t.autoRelance?` <span style="font-size:.62rem;opacity:.5">auto</span>`:''}</div>
+      <button class="ibt" style="width:24px;height:24px;font-size:.75rem;flex-shrink:0" onclick="event.stopPropagation();td_form('${t.id}')">✏️</button>
+    </div>
+    <div class="kb-card-meta">
+      ${c?`<span>${esc(c.company)}</span>`:''}${prio}${due}
+    </div>
+  </div>`;
+}
+
+function tdKbSetPrio(p){tdKbFilter=p;rTodoKanban();}
+let tdKbDrag=null;
+function tdKbDragStart(e,id){tdKbDrag=id;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);}
+function tdKbDragEnd(e){e.currentTarget.classList.remove('dragging');document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));}
+function tdKbDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function tdKbDragEnter(e,key){document.getElementById('tdkbc-'+key)?.classList.add('drag-over');}
+function tdKbDragLeave(e,key){const col=document.getElementById('tdkbc-'+key);if(col&&!col.contains(e.relatedTarget))col.classList.remove('drag-over');}
+function tdKbDrop(e,key){
+  e.preventDefault();
+  const id=e.dataTransfer.getData('text/plain')||tdKbDrag;
+  const t=S.todos.find(x=>x.id===id);
+  if(t){
+    if(key==='done'){ t.done=true; }
+    else { t.done=false; t.priority=key; }
+    save(); toast(key==='done'?'Tâche terminée ✓':PL[key]);
+  }
+  document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
+  rTodoKanban();
+}
 
 // ══ CLIENTS ══
 // ── Client avatar helper (logo or initial with priority border)
