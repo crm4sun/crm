@@ -414,6 +414,13 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .map-popup-meta{font-size:.78rem;color:var(--text-sub);line-height:1.8}
 .map-popup-btn{display:inline-flex;align-items:center;margin-top:10px;padding:6px 14px;background:var(--grad);color:#fff;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;border:none;font-family:'Figtree',sans-serif}
 
+/* CLIENT LOGO */
+.logo-upload-area{display:flex;align-items:center;gap:14px;margin-top:4px}
+.logo-thumb{width:72px;height:72px;border-radius:var(--rx-sm);object-fit:cover;cursor:pointer;flex-shrink:0;transition:all .15s;border:2px solid var(--border)}
+.logo-thumb:hover{border-color:var(--accent);transform:scale(1.04)}
+.logo-placeholder{width:72px;height:72px;border-radius:var(--rx-sm);background:var(--card-hi);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.4rem;flex-shrink:0;transition:all .15s}
+.logo-placeholder:hover{border-color:var(--accent);background:var(--accent-soft)}
+.logo-hint{font-size:.78rem;color:var(--text-sub);line-height:1.6}
 /* MOBILE */
 @media(max-width:768px){
   :root{--sidebar-w:0px}
@@ -554,6 +561,7 @@ let S={
 let CV='home',CF='all',clk=null,PF=null;
 let selDay=null,calYear=null,calMonth=null,noteSaveQ=null;
 let fbApp=null,fbAuth=null,fbDB=null,fbUser=null,fbToken=null,fbListener=null,fbWriting=false,fbSaveTimer=null;
+let pendingLogo=null;
 let selClients=new Set(), clSearch='', clFilter={priority:'',group:'',postal:''}, clSort='name';
 let leafletMap=null, geoQueue=[], geoRunning=false;
 let fHandle=null,lastSavedAt=null,saveQueue=null;
@@ -857,6 +865,53 @@ function updNC(){
   if(un)un.textContent=n||'Paramètres';
 }
 
+// ── Client logo helpers
+async function compressImage(file){
+  return new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=120;
+        const ratio=Math.min(MAX/img.width,MAX/img.height,1);
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.round(img.width*ratio);
+        canvas.height=Math.round(img.height*ratio);
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        res(canvas.toDataURL('image/jpeg',0.78));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function clientLogoEl(c,size=38){
+  const r=size>50?'12px':'8px';
+  const bc={forte:'var(--danger)',moyenne:'var(--warning)',faible:'var(--success)'}[c.priority]||'var(--border)';
+  if(c.logo) return `<img src="${c.logo}" style="width:${size}px;height:${size}px;border-radius:${r};object-fit:cover;border:2.5px solid ${bc};flex-shrink:0">`;
+  return `<div style="width:${size}px;height:${size}px;border-radius:${r};background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;color:#fff;flex-shrink:0;font-size:${Math.round(size*.38)}px;border:2.5px solid ${bc}">${(c.company||'?').charAt(0).toUpperCase()}</div>`;
+}
+
+async function handleLogoUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  if(file.size>5*1024*1024){toast('Image trop grande (max 5 Mo)');return;}
+  const compressed=await compressImage(file);
+  pendingLogo=compressed;
+  const prev=document.getElementById('logo-preview-img');
+  if(prev){prev.outerHTML=`<img id="logo-preview-img" src="${compressed}" class="logo-thumb" onclick="document.getElementById('logo-file-inp').click()" title="Changer le logo">`;}
+  const rm=document.getElementById('logo-rm-btn');
+  if(rm)rm.style.display='';
+}
+
+function removeLogo(){
+  pendingLogo='__remove__';
+  const prev=document.getElementById('logo-preview-img');
+  if(prev){prev.outerHTML=`<div id="logo-preview-img" class="logo-placeholder" onclick="document.getElementById('logo-file-inp').click()" title="Ajouter un logo">📷</div>`;}
+  const rm=document.getElementById('logo-rm-btn');
+  if(rm)rm.style.display='none';
+}
+
 // ══ NAVIGATE ══
 function navigate(view,params={}){
   if(clk){clearInterval(clk);clk=null}
@@ -1067,6 +1122,18 @@ function std(id){
 function tog(id){const t=S.todos.find(x=>x.id===id);if(t){t.done=!t.done;save();updNC()}if(CV==='todos')rTodos({filter:CF});else if(CV==='home')rHome()}
 
 // ══ CLIENTS ══
+// ── Client avatar helper (logo or initial with priority border)
+function prioBorderColor(p){return{forte:'#ff4f5e',moyenne:'#ffb340',faible:'#00d18a'}[p]||'var(--border)'}
+
+function clientAvatar(c, px=38, rx=10){
+  const border='2.5px solid '+prioBorderColor(c.priority);
+  const style=`width:${px}px;height:${px}px;border-radius:${rx}px;flex-shrink:0;border:${border}`;
+  if(c.logo){
+    return`<img src="${c.logo}" class="cl-logo" style="${style};object-fit:contain;background:var(--card)" alt="${esc(c.company)}">`;
+  }
+  return`<div style="${style};background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:${Math.round(px*0.4)}px">${c.company.charAt(0).toUpperCase()}</div>`;
+}
+
 function rClients(){
   const el=document.getElementById('vw-clients');
   selClients=new Set();
@@ -1150,8 +1217,7 @@ function rClients(){
         <div onclick="event.stopPropagation()" style="flex-shrink:0;padding-top:2px">
           <input type="checkbox" class="cl-chk" data-id="${c.id}" onchange="clToggleSel('${c.id}',this.checked)" style="accent-color:var(--accent);width:15px;height:15px">
         </div>
-        ${c.priority?`<div class="prio-dot ${CPD[c.priority]}"></div>`:`<div style="width:9px;flex-shrink:0"></div>`}
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;color:#fff;flex-shrink:0">${c.company.charAt(0).toUpperCase()}</div>
+        ${clientAvatar(c,38,10)}
         <div class="ir-main">
           <div class="ir-n">${esc(c.company)}</div>
           <div class="ir-m">
@@ -1169,6 +1235,42 @@ function rClients(){
       </div>`;
     }).join('')}
   </div>`;
+}
+
+// ── Logo upload helpers
+function handleLogoFile(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  if(file.size>2*1024*1024){ toast('Image trop lourde (max 2 Mo)'); return; }
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    // Resize to max 120x120 via canvas
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=120;
+      let w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX}else{w=Math.round(w*MAX/h);h=MAX} }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL('image/png');
+      showLogoPreview(dataUrl);
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function showLogoPreview(dataUrl){
+  const wrap=document.getElementById('logo-preview-wrap');
+  const dz=document.getElementById('logo-drop-zone');
+  if(wrap) wrap.innerHTML=`<div class="logo-preview"><img src="${dataUrl}" alt="logo"><button class="logo-remove" onclick="removeLogo()" title="Supprimer">✕</button></div>`;
+  if(dz) dz.style.display='none';
+}
+function removeLogo(){
+  const wrap=document.getElementById('logo-preview-wrap');
+  const dz=document.getElementById('logo-drop-zone');
+  if(wrap) wrap.innerHTML='';
+  if(dz) dz.style.display='';
 }
 
 // ── Client search/filter/sort helpers
@@ -1265,7 +1367,7 @@ function rClientDet(id){
   <div style="margin-bottom:20px"><div class="bcrumb"><a onclick="navigate('clients')">Clients</a> <span>›</span> <span>${esc(c.company)}</span></div></div>
   <div class="cl-hero">
     <div style="display:flex;align-items:center;gap:16px">
-      <div class="cl-av">${c.company.charAt(0).toUpperCase()}</div>
+      ${clientAvatar(c,64,16)}
       <div>
         <div class="cl-cn">${esc(c.company)}</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
@@ -1296,6 +1398,16 @@ function cl_form(id=null){
   om(`<div class="mh"><h2 class="mt">${c?'Modifier le client':'Nouveau client'}</h2><button class="mc" onclick="cm()">✕</button></div>
   <div class="fsec"><div class="fst">Société</div>
     <div class="fg"><label class="fl">Nom de la société *</label><input id="cl-co" class="fi" value="${esc(c?.company||'')}" placeholder="Acme Corp"></div>
+    <div class="fg"><label class="fl">Logo</label>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div id="logo-preview-wrap">${c?.logo?`<div class="logo-preview"><img src="${c.logo}" alt="logo"><button class="logo-remove" onclick="removeLogo()" title="Supprimer">✕</button></div>`:''}
+        </div>
+        <div id="logo-drop-zone" class="logo-drop" style="${c?.logo?'display:none':''}" onclick="document.getElementById('logo-file-inp').click()">
+          🖼 Cliquez pour choisir un logo<div style="font-size:.72rem;margin-top:3px;opacity:.6">PNG, JPG · Max 2 Mo · Redimensionné automatiquement</div>
+        </div>
+        <input type="file" id="logo-file-inp" accept="image/*" style="display:none" onchange="handleLogoFile(event)">
+      </div>
+    </div>
     <div class="f2">
       <div class="fg"><label class="fl">Groupe</label>
         <select id="cl-gr" class="fs" onchange="onGrChange()">
@@ -1409,7 +1521,7 @@ function initLeafletMap(){
   const bounds=[];
   S.clients.forEach(c=>{
     if(!c.lat||!c.lon) return;
-    const icon=clientMarkerIcon(c.priority);
+    const icon=clientMarkerIcon(c);
     const m=L.marker([c.lat,c.lon],{icon});
     m.bindPopup(clientPopupHtml(c),{maxWidth:240,className:'map-popup'});
     cluster.addLayer(m);
@@ -1420,12 +1532,20 @@ function initLeafletMap(){
   if(bounds.length>0) leafletMap.fitBounds(bounds,{padding:[40,40],maxZoom:12});
 }
 
-function clientMarkerIcon(priority){
-  const colors={forte:'#ff4f5e',moyenne:'#ffb340',faible:'#00d18a'};
-  const col=colors[priority]||'#4272ff';
+function clientMarkerIcon(c){
+  const priority=c.priority;
+  const col=prioBorderColor(priority);
+  const size=36;
+  let inner;
+  if(c.logo){
+    inner=`<img src="${c.logo}" style="width:${size}px;height:${size}px;object-fit:contain;border-radius:6px;background:#fff;display:block">`;
+  } else {
+    const bg={forte:'#ff4f5e',moyenne:'#ffb340',faible:'#00d18a'}[priority]||'#4272ff';
+    inner=`<div style="width:${size}px;height:${size}px;border-radius:6px;background:${bg};display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;font-family:sans-serif">${c.company.charAt(0).toUpperCase()}</div>`;
+  }
   return L.divIcon({
-    html:`<div style="width:14px;height:14px;border-radius:50%;background:${col};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.45)"></div>`,
-    className:'',iconSize:[14,14],iconAnchor:[7,7],popupAnchor:[0,-10]
+    html:`<div style="border:3px solid ${col};border-radius:8px;box-shadow:0 3px 10px rgba(0,0,0,.35);overflow:hidden;background:#fff">${inner}</div>`,
+    className:'',iconSize:[size+6,size+6],iconAnchor:[Math.round((size+6)/2),Math.round((size+6)/2)],popupAnchor:[0,-(size/2+6)]
   });
 }
 
@@ -1433,7 +1553,7 @@ function clientPopupHtml(c){
   const pBadge=c.priority?`<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:700;background:${c.priority==='forte'?'rgba(255,79,94,.15)':c.priority==='moyenne'?'rgba(255,179,64,.15)':'rgba(0,209,138,.15)'};color:${c.priority==='forte'?'#ff4f5e':c.priority==='moyenne'?'#ffb340':'#00d18a'}">${{forte:'🔴 FORTE',moyenne:'🟡 MOYENNE',faible:'🟢 FAIBLE'}[c.priority]}</span>`:'';
   const firstContact=c.contacts&&c.contacts.length?c.contacts[0]:null;
   return `<div style="min-width:180px;font-family:'Figtree',sans-serif">
-    <div class="map-popup-name">${esc(c.company)}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${clientAvatar(c,40,8)}<div class="map-popup-name" style="margin-bottom:0">${esc(c.company)}</div></div>
     <div style="margin-bottom:6px">${pBadge}</div>
     <div class="map-popup-meta">
       ${c.group?`💼 ${esc(c.group)}<br>`:''}
