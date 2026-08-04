@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon CRM · V1.10</title>
+<title>Mon CRM · V1.11</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -143,14 +143,14 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .ir.done .ir-n{text-decoration:line-through}
 .ir-main{flex:1;min-width:0}
 .ir-n{font-size:.9rem;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ir-m{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.76rem;color:var(--text-sub)}
+.ir-m{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden;font-size:.75rem;color:var(--text-sub)}
 .ir-act{display:flex;gap:5px;flex-shrink:0;margin-top:1px}
 .chk{display:flex;align-items:flex-start;padding-top:2px;cursor:pointer;font-size:1.2rem;line-height:1;flex-shrink:0;color:var(--text-sub);transition:color .14s}
 .chk:hover{color:var(--success)}
 .chk.ck{color:var(--success)}
 
 /* BADGES */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:.71rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;flex-shrink:0;white-space:nowrap}
 .badge::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .bw{background:var(--warning-soft);color:var(--warning)}.bw::before{background:var(--warning)}
 .bd{background:var(--danger-soft);color:var(--danger)}.bd::before{background:var(--danger)}
@@ -158,7 +158,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .bi{background:var(--info-soft);color:var(--info)}.bi::before{background:var(--info)}
 .bm{background:var(--border);color:var(--text-sub)}.bm::before{background:var(--text-sub)}
 .bp{background:var(--purple-soft);color:var(--purple)}.bp::before{background:var(--purple)}
-.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.72rem;color:var(--text-sub);background:var(--border);border:1px solid var(--border-hi)}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:.7rem;color:var(--text-sub);background:var(--border);border:1px solid var(--border-hi);white-space:nowrap;flex-shrink:0}
 
 /* PRIORITY & GROUP */
 .cp-forte{background:var(--danger-soft);color:var(--danger);border:1px solid rgba(255,79,94,.25)}
@@ -177,7 +177,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .pp.pf{border-color:var(--danger);background:var(--danger-soft);color:var(--danger)}
 .pp.pm{border-color:var(--warning);background:var(--warning-soft);color:var(--warning)}
 .pp.pl{border-color:var(--success);background:var(--success-soft);color:var(--success)}
-.group-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:10px;font-size:.72rem;font-weight:600;background:var(--purple-soft);color:var(--purple);border:1px solid var(--purple-soft)}
+.group-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600;background:var(--purple-soft);color:var(--purple);border:1px solid var(--purple-soft);white-space:nowrap;flex-shrink:0}
 .boost-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:.67rem;font-weight:700}
 .bt-forte{background:var(--danger-soft);color:var(--danger)}
 .bt-moyenne{background:var(--warning-soft);color:var(--warning)}
@@ -470,7 +470,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 <aside id="sidebar">
   <div class="sb-logo">
     <div class="sb-icon">C</div>
-    <span class="sb-name">Mon CRM</span><span style="font-size:.6rem;color:var(--text-sub);margin-left:auto;font-family:'Figtree',sans-serif;font-weight:400;letter-spacing:.03em">V1.10</span>
+    <span class="sb-name">Mon CRM</span><span style="font-size:.6rem;color:var(--text-sub);margin-left:auto;font-family:'Figtree',sans-serif;font-weight:400;letter-spacing:.03em">V1.11</span>
   </div>
   <nav class="sb-nav">
     <div class="ni on" id="ni-home" onclick="navigate('home')">
