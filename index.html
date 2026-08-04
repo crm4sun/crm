@@ -892,9 +892,11 @@ function clientLogoEl(c,size=38){
 
 async function handleLogoUpload(e){
   const file=e.target.files[0];if(!file)return;
+  toast('📷 Chargement image: '+Math.round(file.size/1024)+'Ko...');
   if(file.size>5*1024*1024){toast('Image trop grande (max 5 Mo)');return;}
   const compressed=await compressImage(file);
   pendingLogo=compressed;
+  toast('✓ Image compressée: '+Math.round(compressed.length/1024)+'Ko en mémoire');
   const prev=document.getElementById('logo-preview-img');
   if(prev){prev.outerHTML=`<img id="logo-preview-img" src="${compressed}" class="logo-thumb" onclick="document.getElementById('logo-file-inp').click()" title="Changer le logo">`;}
   const rm=document.getElementById('logo-rm-btn');
@@ -1449,8 +1451,9 @@ function scl(id){
   const old=id?S.clients.find(x=>x.id===id):null;
   // Logo
   let logo=old?.logo||null;
-  if(pendingLogo==='__remove__') logo=null;
-  else if(pendingLogo) logo=pendingLogo;
+  if(pendingLogo==='__remove__'){ logo=null; toast('Logo retiré'); }
+  else if(pendingLogo){ logo=pendingLogo; toast('💾 Logo inclus dans la sauvegarde: '+Math.round(logo.length/1024)+'Ko'); }
+  else { toast('ℹ Aucun logo en attente (pendingLogo='+String(pendingLogo)+')'); }
   pendingLogo=null;
   const data={id:id||uid(),company,address:document.getElementById('cl-ad').value.trim(),contacts,group:group||null,priority:priority||null,createdAt:old?.createdAt||today(),logo,lat:old?.lat||null,lon:old?.lon||null};
   if(id){const i=S.clients.findIndex(x=>x.id===id);if(i>=0)S.clients[i]=data}else S.clients.push(data);
