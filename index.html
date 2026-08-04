@@ -425,8 +425,15 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .note-editor b,.note-editor strong{font-weight:700}
 .note-editor u{text-decoration:underline}
 /* KANBAN */
+.kanban-wrap{display:none}
+.todos-kanban-wrap{display:none}
 @media(min-width:769px){
   .offers-filter-row{display:none}
+  .kanban-wrap{display:block}
+  .offers-list-wrap{display:none}
+  .todos-filter-row{display:none}
+  .todos-list-wrap{display:none}
+  .todos-kanban-wrap{display:block}
 }
 
 .kanban-wrap{display:none}
@@ -447,12 +454,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .kb-card-meta{font-size:.72rem;color:var(--text-sub);display:flex;flex-wrap:wrap;gap:5px;align-items:center}
 .kb-card-logo{width:22px;height:22px;border-radius:4px;object-fit:cover;flex-shrink:0}
 .kb-drop-hint{text-align:center;padding:20px 10px;color:var(--text-faint);font-size:.78rem;font-style:italic}
-@media(min-width:769px){
-  .todos-filter-row{display:none}
-  .todos-list-wrap{display:none}
-  .todos-kanban-wrap{display:block}
-}
-.todos-kanban-wrap{display:none}
+
 /* MOBILE */
 @media(max-width:768px){
   :root{--sidebar-w:0px}
@@ -1428,10 +1430,7 @@ function rClients(){
         <option value="moyenne" ${clFilter.priority==='moyenne'?'selected':''}>🟡 MOYENNE</option>
         <option value="faible" ${clFilter.priority==='faible'?'selected':''}>🟢 FAIBLE</option>
       </select>
-      ${groups.length?`<select class="cl-filter-select ${clFilter.group?'active':''}" onchange="clSetFilter('group',this.value)">
-        <option value="">Groupe</option>
-        ${groups.map(g=>`<option value="${esc(g)}" ${clFilter.group===g?'selected':''}>${esc(g)}</option>`).join('')}
-      </select>`:''}
+
       ${postals.length?`<select class="cl-filter-select ${clFilter.postal?'active':''}" onchange="clSetFilter('postal',this.value)">
         <option value="">Code postal</option>
         ${postals.map(p=>`<option value="${p}" ${clFilter.postal===p?'selected':''}>${p}</option>`).join('')}
@@ -1445,6 +1444,14 @@ function rClients(){
       ${(clSearch||clFilter.priority||clFilter.group||clFilter.postal)?`<button class="btn btn-g btn-xs" onclick="clResetFilters()">✕ Effacer</button>`:''}
     </div>
   </div>
+
+  <!-- Group filter tabs -->
+  ${groups.length>0?`<div class="frow" style="margin-bottom:14px">
+    <div class="ftabs">
+      <button class="ftab ${!clFilter.group?'on':''}" onclick="clSetFilter('group','')">Tous les groupes</button>
+      ${groups.map(g=>`<button class="ftab ${clFilter.group===g?'on':''}" onclick="clSetFilter('group','${esc(g)}')">${esc(g)}</button>`).join('')}
+    </div>
+  </div>`:''}
 
   <!-- Bulk action bar (visible when selection) -->
   <div id="cl-bulk-bar" class="cl-bulk-bar hidden">
