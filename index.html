@@ -1342,8 +1342,8 @@ function scl(id){
   save();cm();updNC();
   if(CV==='clients')rClients();else if(CV==='client-detail')rClientDet(data.id);else if(CV==='home')rHome();
   toast('Client enregistré ✓');
-  // Geocode if address changed
-  if(data.address&&(!data.lat||!data.lng)) setTimeout(async()=>{ const ok=await geocodeClient(data); if(ok)save(); },200);
+  // Geocode new/updated address
+  if(data.address&&(!data.lat||!data.lon)) setTimeout(()=>geoAll(false),300);
 }
 
 // ══ MAP ══
@@ -1448,7 +1448,8 @@ function clientPopupHtml(c){
 async function geoAll(force=false){
   geoQueue=[];
   S.clients.forEach(c=>{
-    if(c.address&&c.address.trim()&&(force||(!c.lat||!c.lon))) geoQueue.push(c.id);
+    const skip=!force&&(c.lat!==undefined&&c.lat!==null); // skip if already geocoded (even if failed=0)
+    if(c.address&&c.address.trim()&&(force||(!c.lat&&c.lat!==0))) geoQueue.push(c.id);
   });
   if(geoQueue.length===0){ toast('Toutes les positions sont à jour ✓'); return; }
   toast(`Géocodage de ${geoQueue.length} adresse(s)...`);
@@ -1480,8 +1481,13 @@ async function geoNext(){
       // Update bar
       const bar=document.getElementById('geo-status-bar');
       if(bar) bar.textContent=`📍 Géocodage — ${geoQueue.length} adresse(s) restante(s)...`;
+    } else {
+      c.lat=0; c.lon=0; // address not found — won't retry
     }
-  }catch(e){ console.warn('Geo error for',c.company,e); }
+  }catch(e){
+    console.warn('Geo error for',c.company,e);
+    c.lat=null; c.lon=null; // network error — will retry on next geoAll(true)
+  }
   // Nominatim: 1 req/sec max
   setTimeout(geoNext, 1100);
 }
@@ -1763,28 +1769,6 @@ function doLogout(){
   if(fbAuth) fbAuth.signOut(); // triggers onAuthStateChanged -> showLogin()
 }
 
-// ══ MAP ══
-let mapInstance=null;
-let geocodeQueue=[];
-let geocoding=false;
-
-
-async function geocodeAll(onProgress){
-  if(geocoding) return;
-  geocoding=true;
-  let changed=false;
-  const toGeocode=S.clients.filter(c=>c.address&&(!c.lat||!c.lon));
-  for(let i=0;i<toGeocode.length;i++){
-    const c=toGeocode[i];
-    if(onProgress) onProgress(i+1,toGeocode.length,c.company);
-    const ok=await geocodeClient(c);
-    if(ok) changed=true;
-    if(i<toGeocode.length-1) await new Promise(r=>setTimeout(r,1200)); // Nominatim rate limit
-  }
-  if(changed) save();
-  geocoding=false;
-  return changed;
-}
 
 
 
