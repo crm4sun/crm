@@ -711,39 +711,55 @@ function setSaveStatus(state,fname,hint){
 }
 
 // ══ FIREBASE SYNC ══
-const FB_CONFIG={
+const FB_CONFIG = {
   apiKey:'AIzaSyBGe4T-GOaC6BuH6jlkpfLv_XXPuQuzKNU',
   authDomain:'crmarine-2c3dd.firebaseapp.com',
   databaseURL:'https://crmarine-2c3dd-default-rtdb.europe-west1.firebasedatabase.app'
 };
-const OWNER_UID='G8LIZtjiY6Zjip0hOLvGIKpqX853';
+
+// Liste des utilisateurs autorisés
+const ALLOWED_UIDS = [
+  'G8LIZtjiY6Zjip0hOLvGIKpqX853',
+  'UCOnF6Dx08X1xeJcdtVKv28xJh63'
+];
 
 function fbInit(){
   try{
     fbApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(FB_CONFIG);
     fbAuth = firebase.auth(fbApp);
     fbDB   = firebase.database(fbApp);
+
     fbAuth.onAuthStateChanged(async user=>{
-      if(user && user.uid===OWNER_UID){
-        fbUser=user;
-        try{ fbToken=await user.getIdToken(); }catch(e){}
-        const loaded=await fbLoadData();
-        if(loaded){ applyTheme(); updNC(); }
+      if(user && ALLOWED_UIDS.includes(user.uid)){
+        fbUser = user;
+        try{ fbToken = await user.getIdToken(); }catch(e){}
+
+        const loaded = await fbLoadData();
+        if(loaded){
+          applyTheme();
+          updNC();
+        }
+
         fbStartListener();
         hideLogin();
         navigate('home');
         tryReconnectFile();
         setTimeout(checkAutoTasks,800);
+
       } else {
         if(user) fbAuth.signOut();
-        fbUser=null; fbToken=null;
+        fbUser = null;
+        fbToken = null;
         fbStopListener();
         showLogin();
       }
     });
-  }catch(e){ console.error('fbInit error',e); showLogin(); }
-}
 
+  }catch(e){
+    console.error('fbInit error',e);
+    showLogin();
+  }
+}
 async function fbGoogleSignIn(){
   if(!fbAuth){ showLoginErr('Firebase non initialisé'); return; }
   const btn=document.getElementById('login-google-btn');
