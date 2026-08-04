@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon CRM · V1.02</title>
+<title>Mon CRM · V1.10</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -230,28 +230,21 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 .fc-o{color:var(--accent);font-weight:600;font-size:.77rem;flex-shrink:0}
 
 /* CLIENT SEARCH / FILTER / SORT / MULTISELECT */
-.cl-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
-.cl-search-row{display:flex;gap:9px;align-items:center}
-.cl-search{flex:1;position:relative}
-.cl-search input{padding-left:36px}
-.cl-search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-sub);font-size:.95rem;pointer-events:none}
-.cl-filter-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-.cl-filter-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:20px;font-family:'Figtree',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;outline:none;transition:border-color .14s}
-.cl-filter-select:focus{border-color:var(--accent)}
-.cl-filter-select.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
-.cl-sort-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:20px;font-family:'Figtree',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;outline:none}
+.cl-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.cl-search-wrap{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--border);border-radius:var(--rx-sm);padding:9px 14px;flex:1;min-width:200px;transition:border-color .15s,box-shadow .15s}
+.cl-search-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.cl-search-inp{background:transparent;border:none;color:var(--text);font-family:'Figtree',sans-serif;font-size:.88rem;outline:none;flex:1;min-width:0}
+.cl-search-inp::placeholder{color:var(--text-sub)}
+.cl-filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.cl-filter-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:20px;font-family:'Figtree',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;outline:none;transition:border-color .14s;appearance:none;-webkit-appearance:none}
+.cl-filter-select:focus,.cl-filter-select.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.cl-sort-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:20px;font-family:'Figtree',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;outline:none}
 .cl-filter-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:600;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent);cursor:pointer}
 .cl-filter-tag:hover{background:var(--danger-soft);color:var(--danger);border-color:var(--danger)}
 /* Checkbox on client rows */
 .cl-check{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin-top:14px}
 /* Bulk action bar */
-.bulk-bar{
-  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-  background:var(--surface);border:1px solid var(--accent);border-radius:var(--rx);
-  padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  box-shadow:0 8px 32px var(--accent-glow);z-index:50;
-  animation:pgIn .2s var(--ease);
-}
+.bulk-bar{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--accent);border-radius:var(--rx);padding:14px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 8px 32px var(--accent-glow);z-index:50;}
 .bulk-count{font-weight:700;font-size:.88rem;color:var(--accent);white-space:nowrap}
 .bulk-sep{width:1px;height:20px;background:var(--border)}
 /* Select-all row */
@@ -477,7 +470,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min
 <aside id="sidebar">
   <div class="sb-logo">
     <div class="sb-icon">C</div>
-    <span class="sb-name">Mon CRM</span><span style="font-size:.6rem;color:var(--text-sub);margin-left:auto;font-family:'Figtree',sans-serif;font-weight:400;letter-spacing:.03em">V1.01</span>
+    <span class="sb-name">Mon CRM</span><span style="font-size:.6rem;color:var(--text-sub);margin-left:auto;font-family:'Figtree',sans-serif;font-weight:400;letter-spacing:.03em">V1.10</span>
   </div>
   <nav class="sb-nav">
     <div class="ni on" id="ni-home" onclick="navigate('home')">
@@ -1168,31 +1161,32 @@ function rClients(){
   <!-- Search + Filters -->
   <div class="cl-toolbar">
     <div class="cl-search-wrap">
-      <svg width="14" height="14" viewBox="0 0 24 24" stroke="var(--text-sub)" stroke-width="2" fill="none" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="cl-search" class="cl-search-inp" placeholder="Rechercher un client ou contact..." value="${esc(clSearch)}" oninput="clSetSearch(this.value)">
+      <svg width="15" height="15" viewBox="0 0 24 24" stroke="var(--text-sub)" stroke-width="2.2" fill="none" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="cl-search" class="cl-search-inp" placeholder="Rechercher un client, un contact..." value="${esc(clSearch)}" oninput="clSetSearch(this.value)">
+      ${clSearch?`<span onclick="clSetSearch('')" style="cursor:pointer;color:var(--text-sub);font-size:.85rem;flex-shrink:0">✕</span>`:''}
     </div>
     <div class="cl-filters">
-      <select class="fs" style="font-size:.8rem;padding:7px 10px" onchange="clSetFilter('priority',this.value)">
-        <option value="">Toutes priorités</option>
+      <select class="cl-filter-select ${clFilter.priority?'active':''}" onchange="clSetFilter('priority',this.value)">
+        <option value="">Priorité</option>
         <option value="forte" ${clFilter.priority==='forte'?'selected':''}>🔴 FORTE</option>
         <option value="moyenne" ${clFilter.priority==='moyenne'?'selected':''}>🟡 MOYENNE</option>
         <option value="faible" ${clFilter.priority==='faible'?'selected':''}>🟢 FAIBLE</option>
       </select>
-      <select class="fs" style="font-size:.8rem;padding:7px 10px" onchange="clSetFilter('group',this.value)">
-        <option value="">Tous les groupes</option>
+      ${groups.length?`<select class="cl-filter-select ${clFilter.group?'active':''}" onchange="clSetFilter('group',this.value)">
+        <option value="">Groupe</option>
         ${groups.map(g=>`<option value="${esc(g)}" ${clFilter.group===g?'selected':''}>${esc(g)}</option>`).join('')}
-      </select>
-      ${postals.length?`<select class="fs" style="font-size:.8rem;padding:7px 10px" onchange="clSetFilter('postal',this.value)">
-        <option value="">Tous codes postaux</option>
+      </select>`:''}
+      ${postals.length?`<select class="cl-filter-select ${clFilter.postal?'active':''}" onchange="clSetFilter('postal',this.value)">
+        <option value="">Code postal</option>
         ${postals.map(p=>`<option value="${p}" ${clFilter.postal===p?'selected':''}>${p}</option>`).join('')}
       </select>`:''}
-      <select class="fs" style="font-size:.8rem;padding:7px 10px" onchange="clSetSort(this.value)">
-        <option value="name" ${clSort==='name'?'selected':''}>Tri : Nom A→Z</option>
-        <option value="priority" ${clSort==='priority'?'selected':''}>Tri : Priorité</option>
-        <option value="group" ${clSort==='group'?'selected':''}>Tri : Groupe</option>
-        <option value="date" ${clSort==='date'?'selected':''}>Tri : Date création</option>
+      <select class="cl-filter-select" onchange="clSetSort(this.value)">
+        <option value="name" ${clSort==='name'?'selected':''}>↕ Nom</option>
+        <option value="priority" ${clSort==='priority'?'selected':''}>↕ Priorité</option>
+        <option value="group" ${clSort==='group'?'selected':''}>↕ Groupe</option>
+        <option value="date" ${clSort==='date'?'selected':''}>↕ Date</option>
       </select>
-      ${(clSearch||clFilter.priority||clFilter.group||clFilter.postal)?`<button class="btn btn-g btn-sm" onclick="clResetFilters()">✕ Réinitialiser</button>`:''}
+      ${(clSearch||clFilter.priority||clFilter.group||clFilter.postal)?`<button class="btn btn-g btn-xs" onclick="clResetFilters()">✕ Effacer</button>`:''}
     </div>
   </div>
 
